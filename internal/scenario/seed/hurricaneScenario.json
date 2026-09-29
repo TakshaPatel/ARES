@@ -1,0 +1,1572 @@
+{
+  "id": "hurricane-coastal-metro",
+  "name": "Coastal Metro Hurricane Strike",
+  "description": "Category-4 landfall on Cape Meridian. 12 emergency facilities, 18 infrastructure nodes and a directed dependency graph spanning the power grid, the RescueNet communications mesh and the road network.",
+  "hazardModel": "MAJOR_HURRICANE",
+  "tickMinutes": 5,
+  "startHour": 6,
+  "startMinute": 15,
+  "nodes": [
+    {
+      "id": "substation-01",
+      "name": "Bayfront Substation",
+      "type": "POWER_SUBSTATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.945,
+      "lng": -82.475,
+      "dependencies": [],
+      "metadata": {
+        "exposure": 0.35,
+        "priority": "CRITICAL",
+        "feeders": 9,
+        "crew": "LINE_CREW_ALPHA"
+      }
+    },
+    {
+      "id": "substation-02",
+      "name": "Harbor Substation",
+      "type": "POWER_SUBSTATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.88,
+      "lng": -82.505,
+      "dependencies": [],
+      "metadata": {
+        "exposure": 0.9,
+        "priority": "CRITICAL",
+        "feeders": 6,
+        "crew": "LINE_CREW_BRAVO"
+      }
+    },
+    {
+      "id": "substation-03",
+      "name": "Cedar Park Substation",
+      "type": "POWER_SUBSTATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.985,
+      "lng": -82.395,
+      "dependencies": [],
+      "metadata": {
+        "exposure": 0.18,
+        "priority": "HIGH",
+        "feeders": 5,
+        "crew": "LINE_CREW_CHARLIE"
+      }
+    },
+    {
+      "id": "substation-04",
+      "name": "Southpoint Substation",
+      "type": "POWER_SUBSTATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.81,
+      "lng": -82.44,
+      "dependencies": [],
+      "metadata": {
+        "exposure": 0.52,
+        "priority": "HIGH",
+        "feeders": 7,
+        "crew": "LINE_CREW_ALPHA"
+      }
+    },
+    {
+      "id": "tower-01",
+      "name": "North Ridge Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.998,
+      "lng": -82.45,
+      "dependencies": [
+        "substation-03"
+      ],
+      "metadata": {
+        "exposure": 0.25,
+        "band": "LTE"
+      }
+    },
+    {
+      "id": "tower-02",
+      "name": "Marina Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.932,
+      "lng": -82.505,
+      "dependencies": [
+        "substation-02"
+      ],
+      "metadata": {
+        "exposure": 0.62,
+        "band": "LTE"
+      }
+    },
+    {
+      "id": "tower-03",
+      "name": "Old Town Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.905,
+      "lng": -82.45,
+      "dependencies": [
+        "substation-01"
+      ],
+      "metadata": {
+        "exposure": 0.44,
+        "band": "LTE"
+      }
+    },
+    {
+      "id": "tower-04",
+      "name": "South Point Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.845,
+      "lng": -82.47,
+      "dependencies": [
+        "substation-01"
+      ],
+      "metadata": {
+        "exposure": 0.78,
+        "band": "5G"
+      }
+    },
+    {
+      "id": "mesh-01",
+      "name": "Harbor Mesh Relay",
+      "type": "RADIO_MESH",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.872,
+      "lng": -82.575,
+      "dependencies": [
+        "substation-02"
+      ],
+      "metadata": {
+        "exposure": 0.7,
+        "band": "MESH",
+        "bandwidth_kbps": 96
+      }
+    },
+    {
+      "id": "tower-05",
+      "name": "Beach Park Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.775,
+      "lng": -82.505,
+      "dependencies": [
+        "substation-04"
+      ],
+      "metadata": {
+        "exposure": 0.95,
+        "band": "LTE"
+      }
+    },
+    {
+      "id": "mesh-02",
+      "name": "Cedar Mesh Relay",
+      "type": "RADIO_MESH",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.96,
+      "lng": -82.385,
+      "dependencies": [
+        "substation-03"
+      ],
+      "metadata": {
+        "exposure": 0.3,
+        "band": "MESH",
+        "bandwidth_kbps": 128
+      }
+    },
+    {
+      "id": "tower-06",
+      "name": "Gulf Gate Tower",
+      "type": "CELL_TOWER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.82,
+      "lng": -82.565,
+      "dependencies": [
+        "substation-04",
+        "substation-02"
+      ],
+      "metadata": {
+        "exposure": 0.88,
+        "band": "LTE"
+      }
+    },
+    {
+      "id": "intersection-01",
+      "name": "5th Ave & Main St",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.945,
+      "lng": -82.47,
+      "dependencies": [
+        "substation-03"
+      ],
+      "metadata": {
+        "exposure": 0.4
+      }
+    },
+    {
+      "id": "intersection-02",
+      "name": "Marina Blvd & Bayfront",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.93,
+      "lng": -82.51,
+      "dependencies": [
+        "substation-02"
+      ],
+      "metadata": {
+        "exposure": 0.66
+      }
+    },
+    {
+      "id": "intersection-03",
+      "name": "Southpoint Junction",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.885,
+      "lng": -82.505,
+      "dependencies": [
+        "substation-01"
+      ],
+      "metadata": {
+        "exposure": 0.85
+      }
+    },
+    {
+      "id": "intersection-04",
+      "name": "Cedar Ave & 14th St",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.96,
+      "lng": -82.415,
+      "dependencies": [
+        "substation-03"
+      ],
+      "metadata": {
+        "exposure": 0.22
+      }
+    },
+    {
+      "id": "intersection-05",
+      "name": "Harbor Loop & 3rd St",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.905,
+      "lng": -82.545,
+      "dependencies": [
+        "substation-02"
+      ],
+      "metadata": {
+        "exposure": 0.74
+      }
+    },
+    {
+      "id": "intersection-06",
+      "name": "Gulf Gate Cross",
+      "type": "ROAD_INTERSECTION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.822,
+      "lng": -82.52,
+      "dependencies": [
+        "substation-04"
+      ],
+      "metadata": {
+        "exposure": 0.68
+      }
+    },
+    {
+      "id": "eoc-01",
+      "name": "County EOC - Meridian",
+      "type": "EMERGENCY_OPS_CENTER",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.972,
+      "lng": -82.402,
+      "dependencies": [
+        "substation-03",
+        "tower-01",
+        "mesh-02"
+      ],
+      "metadata": {
+        "exposure": 0.15,
+        "role": "PRIMARY",
+        "staff": 64,
+        "backup_power": true
+      }
+    },
+    {
+      "id": "hospital-01",
+      "name": "St. Angela Regional Hospital",
+      "type": "HOSPITAL",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.975,
+      "lng": -82.425,
+      "dependencies": [
+        "substation-01",
+        "tower-01",
+        "tower-03"
+      ],
+      "metadata": {
+        "exposure": 0.35,
+        "role": "PRIMARY",
+        "beds": 420,
+        "backup_power": true
+      }
+    },
+    {
+      "id": "hospital-02",
+      "name": "Bay View Medical Center",
+      "type": "HOSPITAL",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.812,
+      "lng": -82.512,
+      "dependencies": [
+        "substation-04",
+        "tower-05"
+      ],
+      "metadata": {
+        "exposure": 0.72,
+        "role": "PRIMARY",
+        "beds": 260,
+        "backup_power": true
+      }
+    },
+    {
+      "id": "fire-01",
+      "name": "Station 1 - Central",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.952,
+      "lng": -82.482,
+      "dependencies": [
+        "substation-01",
+        "tower-01"
+      ],
+      "metadata": {
+        "exposure": 0.38,
+        "role": "PRIMARY",
+        "units": 4
+      }
+    },
+    {
+      "id": "fire-02",
+      "name": "Station 4 - Marina",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.928,
+      "lng": -82.523,
+      "dependencies": [
+        "substation-02",
+        "tower-02"
+      ],
+      "metadata": {
+        "exposure": 0.7,
+        "role": "PRIMARY",
+        "units": 3
+      }
+    },
+    {
+      "id": "fire-03",
+      "name": "Station 7 - Gulf Gate",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.828,
+      "lng": -82.545,
+      "dependencies": [
+        "substation-04",
+        "tower-06",
+        "mesh-01"
+      ],
+      "metadata": {
+        "exposure": 0.8,
+        "role": "PRIMARY",
+        "units": 3
+      }
+    },
+    {
+      "id": "hospital-03",
+      "name": "Harbor Community Clinic",
+      "type": "HOSPITAL",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.903,
+      "lng": -82.548,
+      "dependencies": [
+        "substation-02",
+        "mesh-01"
+      ],
+      "metadata": {
+        "exposure": 0.76,
+        "role": "SECONDARY",
+        "beds": 40,
+        "tier": "TRIAGE"
+      }
+    },
+    {
+      "id": "hospital-04",
+      "name": "Gulf Gate Surgical Center",
+      "type": "HOSPITAL",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.8,
+      "lng": -82.5,
+      "dependencies": [
+        "substation-04",
+        "tower-05"
+      ],
+      "metadata": {
+        "exposure": 0.9,
+        "role": "SECONDARY",
+        "beds": 60,
+        "tier": "FIELD"
+      }
+    },
+    {
+      "id": "fire-04",
+      "name": "Station 2 - Old Town",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.9,
+      "lng": -82.455,
+      "dependencies": [
+        "substation-01",
+        "tower-03"
+      ],
+      "metadata": {
+        "exposure": 0.5,
+        "role": "SECONDARY",
+        "units": 2
+      }
+    },
+    {
+      "id": "fire-05",
+      "name": "Station 5 - Harbor Loop",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.885,
+      "lng": -82.575,
+      "dependencies": [
+        "substation-02",
+        "mesh-01",
+        "tower-06"
+      ],
+      "metadata": {
+        "exposure": 0.78,
+        "role": "SECONDARY",
+        "units": 2
+      }
+    },
+    {
+      "id": "fire-06",
+      "name": "Station 6 - Cedar Park",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.968,
+      "lng": -82.42,
+      "dependencies": [
+        "substation-03",
+        "mesh-02"
+      ],
+      "metadata": {
+        "exposure": 0.26,
+        "role": "SECONDARY",
+        "units": 2
+      }
+    },
+    {
+      "id": "fire-07",
+      "name": "Station 9 - Southpoint",
+      "type": "FIRE_STATION",
+      "operational": true,
+      "health": 100.0,
+      "lat": 27.855,
+      "lng": -82.5,
+      "dependencies": [
+        "substation-02",
+        "tower-04"
+      ],
+      "metadata": {
+        "exposure": 0.86,
+        "role": "SECONDARY",
+        "units": 2
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "pl-01",
+      "from": "substation-01",
+      "to": "intersection-01",
+      "type": "POWER_LINE",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 0.49,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.3,
+        "voltage_kv": 138,
+        "distance_km": 0.49
+      }
+    },
+    {
+      "id": "pl-02",
+      "from": "substation-01",
+      "to": "tower-03",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 5.08,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.45,
+        "voltage_kv": 138,
+        "distance_km": 5.08
+      }
+    },
+    {
+      "id": "pl-03",
+      "from": "substation-01",
+      "to": "tower-04",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 11.13,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.8,
+        "voltage_kv": 138,
+        "distance_km": 11.13
+      }
+    },
+    {
+      "id": "pl-04",
+      "from": "substation-01",
+      "to": "intersection-03",
+      "type": "POWER_LINE",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 7.29,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.85,
+        "voltage_kv": 138,
+        "distance_km": 7.29
+      }
+    },
+    {
+      "id": "pl-05",
+      "from": "substation-01",
+      "to": "hospital-01",
+      "type": "POWER_LINE",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 5.94,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.35,
+        "voltage_kv": 138,
+        "distance_km": 5.94
+      }
+    },
+    {
+      "id": "pl-06",
+      "from": "substation-01",
+      "to": "fire-01",
+      "type": "POWER_LINE",
+      "capacity": 40,
+      "latency": 0.0,
+      "distance": 1.04,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.38,
+        "voltage_kv": 138,
+        "distance_km": 1.04
+      }
+    },
+    {
+      "id": "pl-07",
+      "from": "substation-02",
+      "to": "intersection-02",
+      "type": "POWER_LINE",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 5.58,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.66,
+        "voltage_kv": 138,
+        "distance_km": 5.58
+      }
+    },
+    {
+      "id": "pl-08",
+      "from": "substation-02",
+      "to": "mesh-01",
+      "type": "POWER_LINE",
+      "capacity": 12,
+      "latency": 0.0,
+      "distance": 6.94,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.7,
+        "voltage_kv": 138,
+        "distance_km": 6.94
+      }
+    },
+    {
+      "id": "pl-09",
+      "from": "substation-02",
+      "to": "tower-06",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 8.91,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.88,
+        "voltage_kv": 138,
+        "distance_km": 8.91
+      }
+    },
+    {
+      "id": "pl-10",
+      "from": "substation-03",
+      "to": "tower-01",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 5.59,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.25,
+        "voltage_kv": 138,
+        "distance_km": 5.59
+      }
+    },
+    {
+      "id": "pl-11",
+      "from": "substation-03",
+      "to": "eoc-01",
+      "type": "POWER_LINE",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 1.6,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.15,
+        "voltage_kv": 138,
+        "distance_km": 1.6
+      }
+    },
+    {
+      "id": "pl-12",
+      "from": "substation-04",
+      "to": "tower-05",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 7.49,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.95,
+        "voltage_kv": 138,
+        "distance_km": 7.49
+      }
+    },
+    {
+      "id": "pl-13",
+      "from": "substation-04",
+      "to": "intersection-06",
+      "type": "POWER_LINE",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 7.98,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.68,
+        "voltage_kv": 138,
+        "distance_km": 7.98
+      }
+    },
+    {
+      "id": "pl-14",
+      "from": "substation-03",
+      "to": "mesh-02",
+      "type": "POWER_LINE",
+      "capacity": 12,
+      "latency": 0.0,
+      "distance": 2.95,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.3,
+        "voltage_kv": 138,
+        "distance_km": 2.95
+      }
+    },
+    {
+      "id": "pl-15",
+      "from": "substation-04",
+      "to": "fire-03",
+      "type": "POWER_LINE",
+      "capacity": 40,
+      "latency": 0.0,
+      "distance": 10.52,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.8,
+        "voltage_kv": 138,
+        "distance_km": 10.52
+      }
+    },
+    {
+      "id": "pl-16",
+      "from": "substation-02",
+      "to": "fire-02",
+      "type": "POWER_LINE",
+      "capacity": 40,
+      "latency": 0.0,
+      "distance": 5.62,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.7,
+        "voltage_kv": 138,
+        "distance_km": 5.62
+      }
+    },
+    {
+      "id": "pl-17",
+      "from": "substation-03",
+      "to": "intersection-04",
+      "type": "POWER_LINE",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 3.4,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.22,
+        "voltage_kv": 138,
+        "distance_km": 3.4
+      }
+    },
+    {
+      "id": "pl-18",
+      "from": "substation-04",
+      "to": "hospital-02",
+      "type": "POWER_LINE",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 7.08,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.72,
+        "voltage_kv": 138,
+        "distance_km": 7.08
+      }
+    },
+    {
+      "id": "pl-19",
+      "from": "substation-02",
+      "to": "tower-02",
+      "type": "POWER_LINE",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 5.78,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "exposure": 0.62,
+        "voltage_kv": 138,
+        "distance_km": 5.78
+      }
+    },
+    {
+      "id": "ml-01",
+      "from": "tower-01",
+      "to": "eoc-01",
+      "type": "MESH_LINK",
+      "capacity": 900,
+      "latency": 18,
+      "distance": 5.53,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 900,
+        "band": "LTE",
+        "distance_km": 5.53
+      }
+    },
+    {
+      "id": "ml-02",
+      "from": "tower-01",
+      "to": "hospital-01",
+      "type": "MESH_LINK",
+      "capacity": 600,
+      "latency": 24,
+      "distance": 3.54,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 600,
+        "band": "LTE",
+        "distance_km": 3.54
+      }
+    },
+    {
+      "id": "ml-03",
+      "from": "tower-01",
+      "to": "fire-01",
+      "type": "MESH_LINK",
+      "capacity": 500,
+      "latency": 21,
+      "distance": 6.0,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 500,
+        "band": "LTE",
+        "distance_km": 6.0
+      }
+    },
+    {
+      "id": "ml-04",
+      "from": "tower-02",
+      "to": "eoc-01",
+      "type": "MESH_LINK",
+      "capacity": 800,
+      "latency": 26,
+      "distance": 11.05,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 800,
+        "band": "LTE",
+        "distance_km": 11.05
+      }
+    },
+    {
+      "id": "ml-05",
+      "from": "tower-02",
+      "to": "fire-02",
+      "type": "MESH_LINK",
+      "capacity": 400,
+      "latency": 28,
+      "distance": 1.82,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 400,
+        "band": "LTE",
+        "distance_km": 1.82
+      }
+    },
+    {
+      "id": "ml-06",
+      "from": "tower-03",
+      "to": "hospital-01",
+      "type": "MESH_LINK",
+      "capacity": 700,
+      "latency": 21,
+      "distance": 8.16,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 700,
+        "band": "LTE",
+        "distance_km": 8.16
+      }
+    },
+    {
+      "id": "ml-07",
+      "from": "tower-03",
+      "to": "fire-04",
+      "type": "MESH_LINK",
+      "capacity": 400,
+      "latency": 23,
+      "distance": 0.74,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 400,
+        "band": "LTE",
+        "distance_km": 0.74
+      }
+    },
+    {
+      "id": "ml-08",
+      "from": "tower-04",
+      "to": "eoc-01",
+      "type": "MESH_LINK",
+      "capacity": 300,
+      "latency": 55,
+      "distance": 15.62,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 300,
+        "band": "LTE",
+        "distance_km": 15.62
+      }
+    },
+    {
+      "id": "ml-09",
+      "from": "tower-04",
+      "to": "fire-07",
+      "type": "MESH_LINK",
+      "capacity": 200,
+      "latency": 58,
+      "distance": 3.15,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 200,
+        "band": "MESH",
+        "distance_km": 3.15
+      }
+    },
+    {
+      "id": "ml-10",
+      "from": "tower-05",
+      "to": "hospital-02",
+      "type": "MESH_LINK",
+      "capacity": 600,
+      "latency": 30,
+      "distance": 4.17,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 600,
+        "band": "LTE",
+        "distance_km": 4.17
+      }
+    },
+    {
+      "id": "ml-11",
+      "from": "tower-05",
+      "to": "hospital-04",
+      "type": "MESH_LINK",
+      "capacity": 350,
+      "latency": 32,
+      "distance": 2.82,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 350,
+        "band": "LTE",
+        "distance_km": 2.82
+      }
+    },
+    {
+      "id": "ml-12",
+      "from": "tower-06",
+      "to": "fire-03",
+      "type": "MESH_LINK",
+      "capacity": 450,
+      "latency": 34,
+      "distance": 2.16,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 450,
+        "band": "LTE",
+        "distance_km": 2.16
+      }
+    },
+    {
+      "id": "ml-13",
+      "from": "tower-06",
+      "to": "fire-05",
+      "type": "MESH_LINK",
+      "capacity": 300,
+      "latency": 40,
+      "distance": 7.29,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 300,
+        "band": "LTE",
+        "distance_km": 7.29
+      }
+    },
+    {
+      "id": "ml-14",
+      "from": "mesh-01",
+      "to": "eoc-01",
+      "type": "MESH_LINK",
+      "capacity": 96,
+      "latency": 90,
+      "distance": 20.31,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 96,
+        "band": "MESH",
+        "distance_km": 20.31
+      }
+    },
+    {
+      "id": "ml-15",
+      "from": "mesh-01",
+      "to": "hospital-03",
+      "type": "MESH_LINK",
+      "capacity": 64,
+      "latency": 95,
+      "distance": 4.35,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 64,
+        "band": "MESH",
+        "distance_km": 4.35
+      }
+    },
+    {
+      "id": "ml-16",
+      "from": "mesh-01",
+      "to": "fire-05",
+      "type": "MESH_LINK",
+      "capacity": 64,
+      "latency": 88,
+      "distance": 1.45,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 64,
+        "band": "MESH",
+        "distance_km": 1.45
+      }
+    },
+    {
+      "id": "ml-17",
+      "from": "mesh-02",
+      "to": "eoc-01",
+      "type": "MESH_LINK",
+      "capacity": 128,
+      "latency": 78,
+      "distance": 2.14,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 128,
+        "band": "MESH",
+        "distance_km": 2.14
+      }
+    },
+    {
+      "id": "ml-18",
+      "from": "mesh-02",
+      "to": "fire-06",
+      "type": "MESH_LINK",
+      "capacity": 128,
+      "latency": 72,
+      "distance": 3.55,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 128,
+        "band": "MESH",
+        "distance_km": 3.55
+      }
+    },
+    {
+      "id": "ml-19",
+      "from": "tower-05",
+      "to": "mesh-01",
+      "type": "MESH_LINK",
+      "capacity": 128,
+      "latency": 65,
+      "distance": 12.8,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 128,
+        "band": "MESH",
+        "distance_km": 12.8
+      }
+    },
+    {
+      "id": "ml-20",
+      "from": "tower-06",
+      "to": "tower-05",
+      "type": "MESH_LINK",
+      "capacity": 400,
+      "latency": 58,
+      "distance": 7.74,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "bandwidth_kbps": 400,
+        "band": "LTE",
+        "distance_km": 7.74
+      }
+    },
+    {
+      "id": "road-01",
+      "from": "intersection-01",
+      "to": "intersection-02",
+      "type": "ROAD_SEGMENT",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 4.27,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Marina Blvd",
+        "speed_kph": 60.0,
+        "flood_risk": 0.3,
+        "distance_km": 4.27
+      }
+    },
+    {
+      "id": "road-02",
+      "from": "intersection-01",
+      "to": "intersection-04",
+      "type": "ROAD_SEGMENT",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 5.65,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Cedar Avenue",
+        "speed_kph": 60.0,
+        "flood_risk": 0.22,
+        "distance_km": 5.65
+      }
+    },
+    {
+      "id": "road-03",
+      "from": "intersection-04",
+      "to": "intersection-03",
+      "type": "ROAD_SEGMENT",
+      "capacity": 70,
+      "latency": 0.0,
+      "distance": 12.15,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Southpoint Parkway",
+        "speed_kph": 70.0,
+        "flood_risk": 0.4,
+        "distance_km": 12.15
+      }
+    },
+    {
+      "id": "road-04",
+      "from": "intersection-03",
+      "to": "intersection-05",
+      "type": "ROAD_SEGMENT",
+      "capacity": 55,
+      "latency": 0.0,
+      "distance": 4.52,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Harbor Loop West",
+        "speed_kph": 55.0,
+        "flood_risk": 0.74,
+        "distance_km": 4.52
+      }
+    },
+    {
+      "id": "road-05",
+      "from": "intersection-03",
+      "to": "intersection-06",
+      "type": "ROAD_SEGMENT",
+      "capacity": 60,
+      "latency": 0.0,
+      "distance": 7.16,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Gulf Gate Road",
+        "speed_kph": 60.0,
+        "flood_risk": 0.68,
+        "distance_km": 7.16
+      }
+    },
+    {
+      "id": "road-06",
+      "from": "intersection-01",
+      "to": "intersection-03",
+      "type": "ROAD_SEGMENT",
+      "capacity": 65,
+      "latency": 0.0,
+      "distance": 7.51,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Bayfront Bypass",
+        "speed_kph": 65.0,
+        "flood_risk": 0.55,
+        "distance_km": 7.51
+      }
+    },
+    {
+      "id": "road-07",
+      "from": "intersection-05",
+      "to": "intersection-06",
+      "type": "ROAD_SEGMENT",
+      "capacity": 55,
+      "latency": 0.0,
+      "distance": 9.55,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Gulf Gate Cross",
+        "speed_kph": 55.0,
+        "flood_risk": 0.68,
+        "distance_km": 9.55
+      }
+    },
+    {
+      "id": "road-17",
+      "from": "intersection-02",
+      "to": "intersection-05",
+      "type": "ROAD_SEGMENT",
+      "capacity": 50,
+      "latency": 0.0,
+      "distance": 4.42,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Bay Bridge",
+        "speed_kph": 50.0,
+        "flood_risk": 0.85,
+        "controlled_by": "intersection-03",
+        "distance_km": 4.42
+      }
+    },
+    {
+      "id": "road-08",
+      "from": "intersection-04",
+      "to": "hospital-01",
+      "type": "ROAD_SEGMENT",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 1.94,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "St. Angela Access",
+        "speed_kph": 30.0,
+        "flood_risk": 0.35,
+        "distance_km": 1.94
+      }
+    },
+    {
+      "id": "road-09",
+      "from": "intersection-06",
+      "to": "hospital-02",
+      "type": "ROAD_SEGMENT",
+      "capacity": 40,
+      "latency": 0.0,
+      "distance": 1.36,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Bay View Drive",
+        "speed_kph": 40.0,
+        "flood_risk": 0.72,
+        "distance_km": 1.36
+      }
+    },
+    {
+      "id": "road-10",
+      "from": "intersection-01",
+      "to": "fire-01",
+      "type": "ROAD_SEGMENT",
+      "capacity": 35,
+      "latency": 0.0,
+      "distance": 1.41,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Central Avenue",
+        "speed_kph": 35.0,
+        "flood_risk": 0.38,
+        "distance_km": 1.41
+      }
+    },
+    {
+      "id": "road-11",
+      "from": "intersection-02",
+      "to": "fire-02",
+      "type": "ROAD_SEGMENT",
+      "capacity": 25,
+      "latency": 0.0,
+      "distance": 1.3,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Marina Station Way",
+        "speed_kph": 25.0,
+        "flood_risk": 0.7,
+        "distance_km": 1.3
+      }
+    },
+    {
+      "id": "road-12",
+      "from": "intersection-06",
+      "to": "fire-03",
+      "type": "ROAD_SEGMENT",
+      "capacity": 35,
+      "latency": 0.0,
+      "distance": 2.55,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Gulf Gate Station Road",
+        "speed_kph": 35.0,
+        "flood_risk": 0.8,
+        "distance_km": 2.55
+      }
+    },
+    {
+      "id": "road-13",
+      "from": "intersection-04",
+      "to": "eoc-01",
+      "type": "ROAD_SEGMENT",
+      "capacity": 40,
+      "latency": 0.0,
+      "distance": 1.85,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "EOC Access Road",
+        "speed_kph": 40.0,
+        "flood_risk": 0.15,
+        "distance_km": 1.85
+      }
+    },
+    {
+      "id": "road-14",
+      "from": "intersection-05",
+      "to": "hospital-03",
+      "type": "ROAD_SEGMENT",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 0.37,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Harbor Clinic Road",
+        "speed_kph": 30.0,
+        "flood_risk": 0.76,
+        "distance_km": 0.37
+      }
+    },
+    {
+      "id": "road-15",
+      "from": "intersection-06",
+      "to": "hospital-04",
+      "type": "ROAD_SEGMENT",
+      "capacity": 35,
+      "latency": 0.0,
+      "distance": 3.14,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Surgical Center Way",
+        "speed_kph": 35.0,
+        "flood_risk": 0.9,
+        "distance_km": 3.14
+      }
+    },
+    {
+      "id": "road-16",
+      "from": "intersection-03",
+      "to": "fire-04",
+      "type": "ROAD_SEGMENT",
+      "capacity": 45,
+      "latency": 0.0,
+      "distance": 5.19,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Old Town Road",
+        "speed_kph": 45.0,
+        "flood_risk": 0.5,
+        "distance_km": 5.19
+      }
+    },
+    {
+      "id": "road-18",
+      "from": "intersection-05",
+      "to": "fire-05",
+      "type": "ROAD_SEGMENT",
+      "capacity": 25,
+      "latency": 0.0,
+      "distance": 3.69,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Station 5 Way",
+        "speed_kph": 25.0,
+        "flood_risk": 0.78,
+        "distance_km": 3.69
+      }
+    },
+    {
+      "id": "road-19",
+      "from": "intersection-04",
+      "to": "fire-06",
+      "type": "ROAD_SEGMENT",
+      "capacity": 30,
+      "latency": 0.0,
+      "distance": 1.02,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Cedar Station Way",
+        "speed_kph": 30.0,
+        "flood_risk": 0.26,
+        "distance_km": 1.02
+      }
+    },
+    {
+      "id": "road-20",
+      "from": "intersection-03",
+      "to": "fire-07",
+      "type": "ROAD_SEGMENT",
+      "capacity": 35,
+      "latency": 0.0,
+      "distance": 3.37,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Southpoint Station Road",
+        "speed_kph": 35.0,
+        "flood_risk": 0.86,
+        "distance_km": 3.37
+      }
+    },
+    {
+      "id": "road-21",
+      "from": "intersection-01",
+      "to": "intersection-06",
+      "type": "ROAD_SEGMENT",
+      "capacity": 65,
+      "latency": 0.0,
+      "distance": 14.53,
+      "blocked": false,
+      "active": true,
+      "metadata": {
+        "label": "Crosstown Skyway",
+        "speed_kph": 65.0,
+        "flood_risk": 0.35,
+        "distance_km": 14.53
+      }
+    }
+  ],
+  "presets": [
+    {
+      "id": "PRESET-HURRICANE",
+      "label": "Inject Major Hurricane",
+      "kind": "HAZARD",
+      "targetId": "",
+      "severity": "CATASTROPHIC",
+      "intensity": 0.35,
+      "description": "Landfall event. Storm intensity ramps every tick; wind exposure and surge flooding propagate."
+    },
+    {
+      "id": "PRESET-SUB01",
+      "label": "Disable Substation 01",
+      "kind": "NODE_FAILURE",
+      "targetId": "substation-01",
+      "severity": "CRITICAL",
+      "description": "Bayfront Substation offline. Cascades to Tower-04, Southpoint Junction, St. Angela Regional and severs the Bay Bridge."
+    },
+    {
+      "id": "PRESET-SUB01-02",
+      "label": "Blackout: Substations 01 + 02",
+      "kind": "NODE_FAILURE",
+      "targetId": "substation-01,substation-02",
+      "severity": "CATASTROPHIC",
+      "description": "Grid partition. Two substations lost simultaneously; mesh and road control collapse across the bay."
+    },
+    {
+      "id": "PRESET-FLOOD-BRIDGE",
+      "label": "Flood Main Highway (Bay Bridge)",
+      "kind": "ROAD_BLOCK",
+      "targetId": "road-17",
+      "severity": "HIGH",
+      "description": "Storm surge severs the only short crossing of the bay. EMS dispatch must detour around the east shore."
+    },
+    {
+      "id": "PRESET-FLOOD-ZONE",
+      "label": "Flood All Coastal Segments",
+      "kind": "FLOOD_ZONE",
+      "targetId": "",
+      "severity": "HIGH",
+      "description": "Every road segment with flood risk above 0.6 becomes impassable at once."
+    },
+    {
+      "id": "PRESET-TOWER04",
+      "label": "Knock Out Tower 04",
+      "kind": "NODE_FAILURE",
+      "targetId": "tower-04",
+      "severity": "MEDIUM",
+      "description": "South Point Tower destroyed. Forces mesh fallback for Station 9 and cuts latency-sensitive traffic."
+    },
+    {
+      "id": "PRESET-INT03",
+      "label": "Kill Traffic Control at Southpoint",
+      "kind": "NODE_FAILURE",
+      "targetId": "intersection-03",
+      "severity": "MEDIUM",
+      "description": "Intersection control lost. Lowers arterial throughput and, inside the surge zone, blocks the Bay Bridge."
+    },
+    {
+      "id": "PRESET-SUB04",
+      "label": "Disable Substation 04",
+      "kind": "NODE_FAILURE",
+      "targetId": "substation-04",
+      "severity": "CRITICAL",
+      "description": "Southpoint Substation offline. Isolates Bay View Medical Center and the Gulf Gate response area."
+    }
+  ]
+}
