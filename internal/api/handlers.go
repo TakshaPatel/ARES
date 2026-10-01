@@ -133,13 +133,12 @@ func (s *Server) handleLoadScenario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.TrimSpace(body.Inline) != "" {
-		if err := s.loader.LoadFromBytes([]byte(body.Inline), "inline"); err != nil {
+		id, err := s.loader.LoadFromBytes([]byte(body.Inline), "inline")
+		if err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if body.ScenarioID == "" {
-			body.ScenarioID = "inline"
-		}
+		body.ScenarioID = id
 	}
 	sc, ok := s.loader.Get(body.ScenarioID)
 	if !ok {
@@ -300,7 +299,11 @@ func (s *Server) handlePresets(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusServiceUnavailable, "no scenario bound")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]interface{}{"presets": e.Presets()})
+	presets := e.Presets()
+	if presets == nil {
+		presets = []simulation.Preset{}
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"presets": presets})
 }
 
 func (s *Server) handleApplyPreset(w http.ResponseWriter, r *http.Request) {

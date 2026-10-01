@@ -67,34 +67,34 @@ func commsAdj(nodes map[string]*InfrastructureNode, conns map[string]*Connection
 			ID: c.ID, From: from, To: to, Latency: lat, LossPct: loss, Mesh: mesh, Capacity: c.Capacity,
 		})
 	}
-	for _, c := range conns {
-		if c.Type != EdgeMeshLink {
+	for _, conn := range conns {
+		if conn.Type != EdgeMeshLink {
 			continue
 		}
-		if _, exists := nodes[c.From]; !exists {
+		if _, exists := nodes[conn.From]; !exists {
 			continue
 		}
-		if _, exists := nodes[c.To]; !exists {
+		if _, exists := nodes[conn.To]; !exists {
 			continue
 		}
-		push(c, c.From, c.To)
-		push(c, c.To, c.From)
+		push(conn, conn.From, conn.To)
+		push(conn, conn.To, conn.From)
 	}
-	for k := range adj {
-		links := adj[k]
+	for nodeId := range adj {
+		links := adj[nodeId]
 		sort.Slice(links, func(i, j int) bool { return links[i].To < links[j].To })
-		adj[k] = links
+		adj[nodeId] = links
 	}
 	return adj
 }
-func isMeshHop(nodes map[string]*InfrastructureNode, c *Connection) bool {
-	if to, ok := nodes[c.To]; ok && to.Type == NodeRadioMesh {
+func isMeshHop(nodes map[string]*InfrastructureNode, conn *Connection) bool {
+	if to, ok := nodes[conn.To]; ok && to.Type == NodeRadioMesh {
 		return true
 	}
-	if from, ok := nodes[c.From]; ok && from.Type == NodeRadioMesh {
+	if from, ok := nodes[conn.From]; ok && from.Type == NodeRadioMesh {
 		return true
 	}
-	return c.Meta("bandwidth_kbps", 0) < 256
+	return conn.Meta("bandwidth_kbps", 0) < 256
 }
 
 type dsu struct{ parent map[string]string }
@@ -106,27 +106,27 @@ func newDSU(ids []string) *dsu {
 	}
 	return d
 }
-func (d *dsu) find(x string) string {
-	if _, ok := d.parent[x]; !ok {
-		d.parent[x] = x
+func (set *dsu) find(x string) string {
+	if _, ok := set.parent[x]; !ok {
+		set.parent[x] = x
 		return x
 	}
 	root := x
-	for d.parent[root] != root {
-		root = d.parent[root]
+	for set.parent[root] != root {
+		root = set.parent[root]
 	}
-	for d.parent[x] != root {
-		d.parent[x], x = root, d.parent[x]
+	for set.parent[x] != root {
+		set.parent[x], x = root, set.parent[x]
 	}
 	return root
 }
-func (d *dsu) union(a, b string) {
-	ra, rb := d.find(a), d.find(b)
+func (set *dsu) union(a, b string) {
+	ra, rb := set.find(a), set.find(b)
 	if ra != rb {
 		if ra < rb {
-			d.parent[rb] = ra
+			set.parent[rb] = ra
 		} else {
-			d.parent[ra] = rb
+			set.parent[ra] = rb
 		}
 	}
 }
@@ -152,8 +152,8 @@ func AnalyseNetwork(nodes map[string]*InfrastructureNode, conns map[string]*Conn
 	sort.Strings(ids)
 	d := newDSU(ids)
 	for from, links := range adj {
-		for _, l := range links {
-			d.union(from, l.To)
+		for _, link := range links {
+			d.union(from, link.To)
 		}
 	}
 	groups := map[string][]string{}
@@ -162,16 +162,16 @@ func AnalyseNetwork(nodes map[string]*InfrastructureNode, conns map[string]*Conn
 		groups[root] = append(groups[root], id)
 	}
 	roots := make([]string, 0, len(groups))
-	for r := range groups {
-		roots = append(roots, r)
+	for rootId := range groups {
+		roots = append(roots, rootId)
 	}
 	sort.Strings(roots)
-	for i, r := range roots {
-		members := groups[r]
+	for i, rootId := range roots {
+		members := groups[rootId]
 		sort.Strings(members)
 		hasFacility := false
-		for _, m := range members {
-			if nodes[m] != nil && nodes[m].Type.IsFacility() {
+		for _, memberId := range members {
+			if nodes[memberId] != nil && nodes[memberId].Type.IsFacility() {
 				hasFacility = true
 				break
 			}
@@ -180,8 +180,8 @@ func AnalyseNetwork(nodes map[string]*InfrastructureNode, conns map[string]*Conn
 			continue
 		}
 		res.Clusters = append(res.Clusters, members)
-		for _, m := range members {
-			res.ClusterOf[m] = i
+		for _, memberId := range members {
+			res.ClusterOf[memberId] = i
 		}
 	}
 	var eocs []string
@@ -196,47 +196,47 @@ func AnalyseNetwork(nodes map[string]*InfrastructureNode, conns map[string]*Conn
 			facilities = append(facilities, id)
 		}
 	}
-	for _, f := range facilities {
+	for _, facilityId := range facilities {
 		best := math.Inf(1)
 		bestEOC := ""
-		for _, e := range eocs {
-			if e == f {
+		for _, eocId := range eocs {
+			if eocId == facilityId {
 				continue
 			}
-			sp := dijkstra(adj, e)
-			if d, ok := sp.dist[f]; ok && d < best {
-				best, bestEOC = d, e
+			sp := dijkstra(adj, eocId)
+			if d, ok := sp.dist[facilityId]; ok && d < best {
+				best, bestEOC = d, eocId
 			}
 		}
 		if bestEOC != "" {
-			res.CommsReach[f] = true
-			res.Latency[f] = best
+			res.CommsReach[facilityId] = true
+			res.Latency[facilityId] = best
 			chosen := dijkstra(adj, bestEOC)
-			path := chosen.path(f)
-			res.Path[f] = path
-			res.Delivery[f] = deliveryAlong(nodes, path, adj)
+			path := chosen.path(facilityId)
+			res.Path[facilityId] = path
+			res.Delivery[facilityId] = deliveryAlong(nodes, path, adj)
 			if usesMesh(nodes, path) {
-				res.MeshBackoff = append(res.MeshBackoff, f)
-				res.MeshBackoffSet[f] = true
+				res.MeshBackoff = append(res.MeshBackoff, facilityId)
+				res.MeshBackoffSet[facilityId] = true
 			}
-		} else if f == eocs[0] {
-			res.CommsReach[f] = true
-			res.Latency[f] = 0
-			res.Delivery[f] = 100
-			res.Path[f] = []string{f}
+		} else if facilityId == eocs[0] {
+			res.CommsReach[facilityId] = true
+			res.Latency[facilityId] = 0
+			res.Delivery[facilityId] = 100
+			res.Path[facilityId] = []string{facilityId}
 		}
 		peer := false
-		if idx, ok := res.ClusterOf[f]; ok {
-			for _, m := range res.Clusters[idx] {
-				if m != f && nodes[m] != nil && nodes[m].Type.IsFacility() {
+		if idx, ok := res.ClusterOf[facilityId]; ok {
+			for _, memberId := range res.Clusters[idx] {
+				if memberId != facilityId && nodes[memberId] != nil && nodes[memberId].Type.IsFacility() {
 					peer = true
 					break
 				}
 			}
 		}
-		res.PeerReach[f] = peer
-		if !res.CommsReach[f] && !peer {
-			res.Isolated = append(res.Isolated, f)
+		res.PeerReach[facilityId] = peer
+		if !res.CommsReach[facilityId] && !peer {
+			res.Isolated = append(res.Isolated, facilityId)
 		}
 	}
 	for _, id := range ids {
@@ -246,9 +246,9 @@ func AnalyseNetwork(nodes map[string]*InfrastructureNode, conns map[string]*Conn
 	}
 	var lossSum float64
 	var lossCount int
-	for from := range adj {
-		for _, l := range adj[from] {
-			lossSum += l.LossPct
+	for nodeId := range adj {
+		for _, link := range adj[nodeId] {
+			lossSum += link.LossPct
 			lossCount++
 		}
 	}
@@ -269,9 +269,9 @@ func deliveryAlong(nodes map[string]*InfrastructureNode, path []string, adj map[
 	success := 1.0
 	for i := 0; i+1 < len(path); i++ {
 		var link *CommsLink
-		for k := range adj[path[i]] {
-			if adj[path[i]][k].To == path[i+1] {
-				link = &adj[path[i]][k]
+		for nodeId := range adj[path[i]] {
+			if adj[path[i]][nodeId].To == path[i+1] {
+				link = &adj[path[i]][nodeId]
 				break
 			}
 		}
@@ -297,14 +297,14 @@ type shortestPath struct {
 	prevEdge map[string]string
 }
 
-func (s *shortestPath) path(to string) []string {
-	if _, ok := s.dist[to]; !ok {
+func (sp *shortestPath) path(to string) []string {
+	if _, ok := sp.dist[to]; !ok {
 		return nil
 	}
 	out := []string{to}
 	cur := to
 	for {
-		p, ok := s.prev[cur]
+		p, ok := sp.prev[cur]
 		if !ok {
 			break
 		}
@@ -320,15 +320,15 @@ type pqItem struct {
 }
 type pq []pqItem
 
-func (p pq) Len() int            { return len(p) }
-func (p pq) Less(i, j int) bool  { return p[i].dist < p[j].dist }
-func (p pq) Swap(i, j int)       { p[i], p[j] = p[j], p[i] }
-func (p *pq) Push(x interface{}) { *p = append(*p, x.(pqItem)) }
-func (p *pq) Pop() interface{} {
-	old := *p
+func (queue pq) Len() int            { return len(queue) }
+func (queue pq) Less(i, j int) bool  { return queue[i].dist < queue[j].dist }
+func (queue pq) Swap(i, j int)       { queue[i], queue[j] = queue[j], queue[i] }
+func (queue *pq) Push(x interface{}) { *queue = append(*queue, x.(pqItem)) }
+func (queue *pq) Pop() interface{} {
+	old := *queue
 	n := len(old)
 	it := old[n-1]
-	*p = old[:n-1]
+	*queue = old[:n-1]
 	return it
 }
 func dijkstra(adj map[string][]CommsLink, source string) *shortestPath {
@@ -344,13 +344,13 @@ func dijkstra(adj map[string][]CommsLink, source string) *shortestPath {
 		if cur, ok := sp.dist[item.id]; !ok || cur > item.dist+1e-9 {
 			continue
 		}
-		for _, l := range adj[item.id] {
-			nd := item.dist + l.Latency
-			if old, ok := sp.dist[l.To]; !ok || nd < old-1e-9 {
-				sp.dist[l.To] = nd
-				sp.prev[l.To] = l.From
-				sp.prevEdge[l.To] = l.ID
-				heap.Push(q, pqItem{id: l.To, dist: nd})
+		for _, link := range adj[item.id] {
+			nd := item.dist + link.Latency
+			if old, ok := sp.dist[link.To]; !ok || nd < old-1e-9 {
+				sp.dist[link.To] = nd
+				sp.prev[link.To] = link.From
+				sp.prevEdge[link.To] = link.ID
+				heap.Push(q, pqItem{id: link.To, dist: nd})
 			}
 		}
 	}

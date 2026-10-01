@@ -31,59 +31,59 @@ type Scenario struct {
 	Presets     []Preset              `json:"presets"`
 }
 
-func (s *Scenario) Normalize() {
-	if s.TickMinutes <= 0 {
-		s.TickMinutes = 1
+func (scenario *Scenario) Normalize() {
+	if scenario.TickMinutes <= 0 {
+		scenario.TickMinutes = 1
 	}
-	if s.StartHour < 0 || s.StartHour > 23 {
-		s.StartHour = 6
+	if scenario.StartHour < 0 || scenario.StartHour > 23 {
+		scenario.StartHour = 6
 	}
-	if s.StartMinute < 0 || s.StartMinute > 59 {
-		s.StartMinute = 0
+	if scenario.StartMinute < 0 || scenario.StartMinute > 59 {
+		scenario.StartMinute = 0
 	}
-	for _, n := range s.Nodes {
-		if n.Health <= 0 {
-			n.Health = 100
+	for _, node := range scenario.Nodes {
+		if node.Health <= 0 {
+			node.Health = 100
 		}
-		if n.Health > 100 {
-			n.Health = 100
+		if node.Health > 100 {
+			node.Health = 100
 		}
-		if !n.Operational && n.Health > 0 {
-			n.Operational = true
+		if !node.Operational && node.Health > 0 {
+			node.Operational = true
 		}
-		if n.Status == "" {
-			n.Status = StatusOperational
+		if node.Status == "" {
+			node.Status = StatusOperational
 		}
 	}
 	idx := map[string]*InfrastructureNode{}
-	for _, n := range s.Nodes {
-		idx[n.ID] = n
+	for _, node := range scenario.Nodes {
+		idx[node.ID] = node
 	}
-	for _, c := range s.Connections {
-		if !c.Active && !c.Blocked && c.Capacity > 0 {
-			c.Active = true
+	for _, conn := range scenario.Connections {
+		if !conn.Active && !conn.Blocked && conn.Capacity > 0 {
+			conn.Active = true
 		}
-		if c.SpeedKPH <= 0 {
-			if v, ok := c.Metadata["speed_kph"]; ok {
+		if conn.SpeedKPH <= 0 {
+			if v, ok := conn.Metadata["speed_kph"]; ok {
 				if f, ok2 := v.(float64); ok2 {
-					c.SpeedKPH = f
+					conn.SpeedKPH = f
 				}
 			}
 		}
-		if c.SpeedKPH <= 0 {
-			if c.Type == EdgeRoad {
-				c.SpeedKPH = 50
+		if conn.SpeedKPH <= 0 {
+			if conn.Type == EdgeRoad {
+				conn.SpeedKPH = 50
 			}
 		}
-		if c.Distance <= 0 {
-			from, ok1 := idx[c.From]
-			to, ok2 := idx[c.To]
+		if conn.Distance <= 0 {
+			from, ok1 := idx[conn.From]
+			to, ok2 := idx[conn.To]
 			if ok1 && ok2 {
-				c.Distance = round2(Haversine(from.Lat, from.Lng, to.Lat, to.Lng))
+				conn.Distance = round2(Haversine(from.Lat, from.Lng, to.Lat, to.Lng))
 			}
 		}
-		if c.Metadata == nil {
-			c.Metadata = map[string]interface{}{}
+		if conn.Metadata == nil {
+			conn.Metadata = map[string]interface{}{}
 		}
 	}
 }
@@ -117,7 +117,7 @@ type Engine struct {
 
 func NewEngine(sc *Scenario) *Engine {
 	sc.Normalize()
-	e := &Engine{
+	eng := &Engine{
 		scenario:  sc,
 		nodes:     make(map[string]*InfrastructureNode, len(sc.Nodes)),
 		conns:     make(map[string]*Connection, len(sc.Connections)),
@@ -126,20 +126,20 @@ func NewEngine(sc *Scenario) *Engine {
 		stop:      make(chan struct{}),
 		done:      make(chan struct{}),
 	}
-	e.loadLocked()
-	return e
+	eng.loadLocked()
+	return eng
 }
 
-func (e *Engine) loadLocked() {
-	e.nodes = make(map[string]*InfrastructureNode, len(e.scenario.Nodes))
-	e.conns = make(map[string]*Connection, len(e.scenario.Connections))
-	for _, n := range e.scenario.Nodes {
-		c := *n
-		c.Dependencies = append([]string(nil), n.Dependencies...)
-		if n.Metadata != nil {
-			c.Metadata = make(map[string]interface{}, len(n.Metadata))
-			for k, v := range n.Metadata {
-				c.Metadata[k] = v
+func (eng *Engine) loadLocked() {
+	eng.nodes = make(map[string]*InfrastructureNode, len(eng.scenario.Nodes))
+	eng.conns = make(map[string]*Connection, len(eng.scenario.Connections))
+	for _, node := range eng.scenario.Nodes {
+		c := *node
+		c.Dependencies = copyStrings(node.Dependencies)
+		if node.Metadata != nil {
+			c.Metadata = make(map[string]interface{}, len(node.Metadata))
+			for key, value := range node.Metadata {
+				c.Metadata[key] = value
 			}
 		}
 		c.Operational = true
@@ -148,9 +148,9 @@ func (e *Engine) loadLocked() {
 		c.Reason = ""
 		c.CascadeDep = 0
 		c.Repairing = false
-		e.nodes[c.ID] = &c
+		eng.nodes[c.ID] = &c
 	}
-	for _, cn := range e.scenario.Connections {
+	for _, cn := range eng.scenario.Connections {
 		c := *cn
 		c.Blocked = false
 		c.Active = true
@@ -158,79 +158,79 @@ func (e *Engine) loadLocked() {
 		c.Flooded = false
 		if cn.Metadata != nil {
 			c.Metadata = make(map[string]interface{}, len(cn.Metadata))
-			for k, v := range cn.Metadata {
-				c.Metadata[k] = v
+			for key, value := range cn.Metadata {
+				c.Metadata[key] = value
 			}
 		}
-		e.conns[c.ID] = &c
+		eng.conns[c.ID] = &c
 	}
-	e.graph = NewDependencyGraph(e.nodes)
-	e.tick = 0
-	e.hz = NewHazard()
-	e.events = nil
-	e.eventSeq = 0
-	e.lastRoutes = map[string][]string{}
-	e.revision++
-	e.captureBase()
+	eng.graph = NewDependencyGraph(eng.nodes)
+	eng.tick = 0
+	eng.hz = NewHazard()
+	eng.events = nil
+	eng.eventSeq = 0
+	eng.lastRoutes = map[string][]string{}
+	eng.revision++
+	eng.captureBase()
 }
 
-func (e *Engine) captureBase() {
-	e.baseNodes = make(map[string]*InfrastructureNode, len(e.nodes))
-	for id, n := range e.nodes {
-		c := *n
-		e.baseNodes[id] = &c
+func (eng *Engine) captureBase() {
+	eng.baseNodes = make(map[string]*InfrastructureNode, len(eng.nodes))
+	for id, node := range eng.nodes {
+		c := *node
+		eng.baseNodes[id] = &c
 	}
-	e.baseConns = make(map[string]*Connection, len(e.conns))
-	for id, c := range e.conns {
-		cc := *c
-		e.baseConns[id] = &cc
+	eng.baseConns = make(map[string]*Connection, len(eng.conns))
+	for id, conn := range eng.conns {
+		cc := *conn
+		eng.baseConns[id] = &cc
 	}
 }
 
-func (e *Engine) Scenario() *Scenario { return e.scenario }
+func (eng *Engine) Scenario() *Scenario { return eng.scenario }
 
-func (e *Engine) Running() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.running
+func (eng *Engine) Running() bool {
+	eng.mu.RLock()
+	defer eng.mu.RUnlock()
+	return eng.running
 }
 
-func (e *Engine) Tick() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.tick
+func (eng *Engine) Tick() int {
+	eng.mu.RLock()
+	defer eng.mu.RUnlock()
+	return eng.tick
 }
 
-func (e *Engine) Presets() []Preset { return e.scenario.Presets }
+func (eng *Engine) Presets() []Preset { return eng.scenario.Presets }
 
-func (e *Engine) clock() string {
-	return ClockString(e.tick, e.scenario.TickMinutes, e.scenario.StartHour, e.scenario.StartMinute)
+func (eng *Engine) clock() string {
+	return ClockString(eng.tick, eng.scenario.TickMinutes, eng.scenario.StartHour, eng.scenario.StartMinute)
 }
 
-func (e *Engine) logEvent(sev EventSeverity, cat EventCategory, source, nodeID, msg string, depth int) {
-	e.eventSeq++
-	e.events = append([]EventLogEntry{{
-		ID: e.eventSeq, Tick: e.tick, Clock: e.clock(), Severity: sev,
+func (eng *Engine) logEvent(sev EventSeverity, cat EventCategory, source, nodeID, msg string, depth int) {
+	eng.eventSeq++
+	eng.events = append([]EventLogEntry{{
+		ID: eng.eventSeq, Tick: eng.tick, Clock: eng.clock(), Severity: sev,
 		Category: cat, Source: source, NodeID: nodeID, Depth: depth, Message: msg,
-	}}, e.events...)
-	if len(e.events) > 400 {
-		e.events = e.events[:400]
+	}}, eng.events...)
+	if len(eng.events) > 400 {
+		eng.events = eng.events[:400]
 	}
 }
 
-func (e *Engine) Start() {
-	e.mu.Lock()
-	if e.running {
-		e.mu.Unlock()
+func (eng *Engine) Start() {
+	eng.mu.Lock()
+	if eng.running {
+		eng.mu.Unlock()
 		return
 	}
-	e.running = true
-	e.stop = make(chan struct{})
-	e.done = make(chan struct{})
-	stop, done := e.stop, e.done
-	e.logEvent(EventInfo, CatCommand, "COMMAND", "", "SIMULATION STARTED", 0)
-	e.mu.Unlock()
-	e.publish()
+	eng.running = true
+	eng.stop = make(chan struct{})
+	eng.done = make(chan struct{})
+	stop, done := eng.stop, eng.done
+	eng.logEvent(EventInfo, CatCommand, "COMMAND", "", "SIMULATION STARTED", 0)
+	eng.mu.Unlock()
+	eng.publish()
 
 	go func() {
 		defer close(done)
@@ -241,151 +241,151 @@ func (e *Engine) Start() {
 			case <-stop:
 				return
 			case <-t.C:
-				e.TickOnce()
+				eng.TickOnce()
 			}
 		}
 	}()
 }
 
-func (e *Engine) Pause() {
-	e.mu.Lock()
-	if !e.running {
-		e.mu.Unlock()
+func (eng *Engine) Pause() {
+	eng.mu.Lock()
+	if !eng.running {
+		eng.mu.Unlock()
 		return
 	}
-	e.running = false
-	close(e.stop)
-	e.logEvent(EventWarning, CatCommand, "COMMAND", "", "SIMULATION PAUSED", 0)
-	e.mu.Unlock()
-	<-e.done
-	e.publish()
+	eng.running = false
+	close(eng.stop)
+	eng.logEvent(EventWarning, CatCommand, "COMMAND", "", "SIMULATION PAUSED", 0)
+	eng.mu.Unlock()
+	<-eng.done
+	eng.publish()
 }
 
-func (e *Engine) Shutdown() {
-	e.mu.Lock()
-	if e.running {
-		e.running = false
-		close(e.stop)
+func (eng *Engine) Shutdown() {
+	eng.mu.Lock()
+	if eng.running {
+		eng.running = false
+		close(eng.stop)
 	}
-	e.mu.Unlock()
+	eng.mu.Unlock()
 }
 
-func (e *Engine) TickOnce() {
-	e.mu.Lock()
-	e.advanceLocked()
-	state := e.buildStateLocked()
-	listeners := e.collectListenersLocked()
-	e.mu.Unlock()
+func (eng *Engine) TickOnce() {
+	eng.mu.Lock()
+	eng.advanceLocked()
+	state := eng.buildStateLocked()
+	listeners := eng.collectListenersLocked()
+	eng.mu.Unlock()
 	notify(listeners, state)
 }
 
-func (e *Engine) advanceLocked() {
-	e.tick++
-	e.graph = NewDependencyGraph(e.nodes)
+func (eng *Engine) advanceLocked() {
+	eng.tick++
+	eng.graph = NewDependencyGraph(eng.nodes)
 
-	hzOut := AdvanceHazard(e.hz, e.nodes, e.conns, e.tick)
+	hzOut := AdvanceHazard(eng.hz, eng.nodes, eng.conns, eng.tick)
 	for _, id := range hzOut.Failed {
-		n := e.nodes[id]
-		e.logEvent(EventFailure, CatPower, string(SourceHazard), id,
-			fmt.Sprintf("%s destroyed by %s at intensity %.0f%%", n.Name, e.hz.Name, e.hz.Intensity*100), 0)
+		n := eng.nodes[id]
+		eng.logEvent(EventFailure, CatPower, string(SourceHazard), id,
+			fmt.Sprintf("%s destroyed by %s at intensity %.0f%%", n.Name, eng.hz.Name, eng.hz.Intensity*100), 0)
 	}
 	for _, id := range hzOut.Blocked {
-		e.logEvent(EventFailure, CatRoad, string(SourceHazard), id,
-			fmt.Sprintf("%s impassable: storm surge", labelFor(e.conns, id)), 1)
+		eng.logEvent(EventFailure, CatRoad, string(SourceHazard), id,
+			fmt.Sprintf("%s impassable: floodwater", labelFor(eng.conns, id)), 1)
 	}
 
-	failures := e.graph.EvaluateDependencies(e.nodes, e.conns, e.hz.Flooded)
-	for _, f := range failures {
-		n := e.nodes[f.ID]
+	failures := eng.graph.EvaluateDependencies(eng.nodes, eng.conns, eng.hz.Flooded)
+	for _, failure := range failures {
+		n := eng.nodes[failure.ID]
 		sev := EventCascade
-		if f.Depth <= 1 {
+		if failure.Depth <= 1 {
 			sev = EventCascade
 		}
 		cat := categoryFor(n.Type)
-		e.logEvent(sev, cat, string(SourceCascade), n.ID,
-			fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", n.Name, f.Reason, f.Depth), f.Depth)
+		eng.logEvent(sev, cat, string(SourceCascade), n.ID,
+			fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", n.Name, failure.Reason, failure.Depth), failure.Depth)
 	}
 
-	DecayHealth(e.nodes, e.hz, e.tick)
-	rec := StepRecovery(e.nodes, e.conns, e.graph, e.hz, e.tick > 2)
+	DecayHealth(eng.nodes, eng.hz, eng.tick)
+	rec := StepRecovery(eng.nodes, eng.conns, eng.graph, eng.hz, eng.tick > 2)
 	for _, id := range rec.Repaired {
-		e.logEvent(EventInfo, CatCommand, string(SourceAutoRepair), id,
-			fmt.Sprintf("Repair crew dispatched to %s", e.nodes[id].Name), 0)
+		eng.logEvent(EventInfo, CatCommand, string(SourceAutoRepair), id,
+			fmt.Sprintf("Repair crew dispatched to %s", eng.nodes[id].Name), 0)
 	}
 	for _, id := range rec.Unblocked {
-		e.logEvent(EventSuccess, CatRoad, string(SourceAutoRepair), id,
-			fmt.Sprintf("%s cleared and reopened", labelFor(e.conns, id)), 0)
+		eng.logEvent(EventSuccess, CatRoad, string(SourceAutoRepair), id,
+			fmt.Sprintf("%s cleared and reopened", labelFor(eng.conns, id)), 0)
 	}
-	e.applyRoutingLocked()
+	eng.applyRoutingLocked()
 }
 
-func (e *Engine) applyRoutingLocked() {
-	net := AnalyseNetwork(e.nodes, e.conns)
-	rr := ComputeEMSRoutes(e.nodes, e.conns, net, e.lastRoutes)
-	for _, r := range rr.Changed {
-		e.logEvent(EventReroute, CatRouting, "ROUTING_ENGINE", r.Origin,
-			DescribeRoute(r, "dynamic obstruction"), 0)
+func (eng *Engine) applyRoutingLocked() {
+	net := AnalyseNetwork(eng.nodes, eng.conns)
+	rr := ComputeEMSRoutes(eng.nodes, eng.conns, net, eng.lastRoutes)
+	for _, route := range rr.Changed {
+		eng.logEvent(EventReroute, CatRouting, "ROUTING_ENGINE", route.Origin,
+			DescribeRoute(route, "dynamic obstruction"), 0)
 	}
-	for _, h := range rr.Unreachable {
-		e.logEvent(EventFailure, CatRouting, "ROUTING_ENGINE", h,
-			fmt.Sprintf("No road route to %s from any responding unit", e.nodes[h].Name), 0)
+	for _, hospitalId := range rr.Unreachable {
+		eng.logEvent(EventFailure, CatRouting, "ROUTING_ENGINE", hospitalId,
+			fmt.Sprintf("No road route to %s from any responding unit", eng.nodes[hospitalId].Name), 0)
 	}
-	e.lastRoutes = rr.Active
+	eng.lastRoutes = rr.Active
 }
 
-func (e *Engine) buildStateLocked() *SimulationState {
-	net := AnalyseNetwork(e.nodes, e.conns)
-	rr := ComputeEMSRoutes(e.nodes, e.conns, net, e.lastRoutes)
+func (eng *Engine) buildStateLocked() *SimulationState {
+	net := AnalyseNetwork(eng.nodes, eng.conns)
+	rr := ComputeEMSRoutes(eng.nodes, eng.conns, net, eng.lastRoutes)
 
-	facilities := make([]string, 0, len(e.nodes))
-	for id, n := range e.nodes {
-		if n.Type.IsFacility() {
+	facilities := make([]string, 0, len(eng.nodes))
+	for id, node := range eng.nodes {
+		if node.Type.IsFacility() {
 			facilities = append(facilities, id)
 		}
 	}
 	sort.Strings(facilities)
 
-	roadAdj := BuildRoadAdjacency(e.nodes, e.conns)
-	roadReach := roadReachability(e.nodes, roadAdj)
+	roadAdj := BuildRoadAdjacency(eng.nodes, eng.conns)
+	roadReach := roadReachability(eng.nodes, roadAdj)
 
 	isolated := make([]string, 0)
 	connected := 0
-	commsCov := e.commsCoverage(net)
-	for _, f := range facilities {
-		commsOK := net.CommsReach[f] || net.PeerReach[f]
-		roadOK := roadReach[f]
+	commsCov := eng.commsCoverage(net)
+	for _, facilityId := range facilities {
+		commsOK := net.CommsReach[facilityId] || net.PeerReach[facilityId]
+		roadOK := roadReach[facilityId]
 		if commsOK || roadOK {
 			connected++
 		}
 		if !commsOK && !roadOK {
-			isolated = append(isolated, f)
+			isolated = append(isolated, facilityId)
 		}
 	}
 
-	delivery, latency := e.deliveryMetrics(net, facilities)
-	roadAcc := e.roadAccessibility(facilities, roadReach)
+	delivery, latency := eng.deliveryMetrics(net, facilities)
+	roadAcc := eng.roadAccessibility(facilities, roadReach)
 
-	alerts := e.buildAlerts(net, facilities, isolated, delivery, latency)
+	alerts := eng.buildAlerts(net, facilities, isolated, delivery, latency)
 	meshBackoff := net.MeshBackoff
 	blockedish := make([]string, 0)
-	for id, c := range e.conns {
-		if c.Blocked {
+	for id, conn := range eng.conns {
+		if conn.Blocked {
 			blockedish = append(blockedish, id)
 		}
 	}
 	sort.Strings(blockedish)
 
-	for _, n := range e.nodes {
-		n.MeshLink = net.MeshBackoffSet[n.ID]
-		n.Status = n.StatusFor(contains(isolated, n.ID))
+	for _, node := range eng.nodes {
+		node.MeshLink = net.MeshBackoffSet[node.ID]
+		node.Status = node.StatusFor(contains(isolated, node.ID))
 	}
 
 	state := &SimulationState{
-		Tick:                e.tick,
-		Running:             e.running,
-		Nodes:               e.nodes,
-		Connections:         e.conns,
-		PowerGridHealth:     e.powerGridHealth(),
+		Tick:                eng.tick,
+		Running:             eng.running,
+		Nodes:               eng.nodes,
+		Connections:         eng.conns,
+		PowerGridHealth:     eng.powerGridHealth(),
 		CommsCoverage:       commsCov,
 		RoadAccessibility:   roadAcc,
 		MessageDeliveryRate: delivery,
@@ -397,37 +397,37 @@ func (e *Engine) buildStateLocked() *SimulationState {
 		ActiveEMSRoutes:     rr.Active,
 	}
 	powerCritical := 0.0
-	for id, n := range e.nodes {
-		if n.Type == NodePowerSubstation {
-			powerCritical += float64(e.graph.Criticality[id])
+	for id, node := range eng.nodes {
+		if node.Type == NodePowerSubstation {
+			powerCritical += float64(eng.graph.Criticality[id])
 		}
 	}
 	state.Diagnostics = &Diagnostics{
-		Events:         append([]EventLogEntry{}, e.events...),
+		Events:         append([]EventLogEntry{}, eng.events...),
 		CommsClusters:  net.Clusters,
 		EmsRoutes:      rr.Routes,
 		MeshBackoff:    meshBackoff,
-		DependencyEdge: DependencyEdgeList(e.nodes, e.conns),
+		DependencyEdge: DependencyEdgeList(eng.nodes, eng.conns),
 		BlockedEdges:   blockedish,
 		PowerCritical:  powerCritical,
-		ElapsedMinutes: e.tick * e.scenario.TickMinutes,
-		Clock:          e.clock(),
-		Revision:       e.revision,
+		ElapsedMinutes: eng.tick * eng.scenario.TickMinutes,
+		Clock:          eng.clock(),
+		Revision:       eng.revision,
 	}
 	return state
 }
 
-func (e *Engine) powerGridHealth() float64 {
+func (eng *Engine) powerGridHealth() float64 {
 	var num, den float64
-	for id, n := range e.nodes {
-		if n.Type != NodePowerSubstation {
+	for id, node := range eng.nodes {
+		if node.Type != NodePowerSubstation {
 			continue
 		}
-		w := float64(e.graph.Criticality[id])
+		w := float64(eng.graph.Criticality[id])
 		if w < 1 {
 			w = 1
 		}
-		num += w * n.Health
+		num += w * node.Health
 		den += w
 	}
 	if den == 0 {
@@ -436,19 +436,19 @@ func (e *Engine) powerGridHealth() float64 {
 	return round2(num / den)
 }
 
-func (e *Engine) commsCoverage(net *NetworkAnalysis) float64 {
+func (eng *Engine) commsCoverage(net *NetworkAnalysis) float64 {
 	var total, covered int
-	for id, n := range e.nodes {
-		if !n.Type.IsComms() {
+	for id, node := range eng.nodes {
+		if !node.Type.IsComms() {
 			continue
 		}
 		total++
-		if !n.Operational {
+		if !node.Operational {
 			continue
 		}
 		if idx, ok := net.ClusterOf[id]; ok {
-			for _, m := range net.Clusters[idx] {
-				if mn, ok2 := e.nodes[m]; ok2 && mn.Type == NodeEOC {
+			for _, memberId := range net.Clusters[idx] {
+				if mn, ok2 := eng.nodes[memberId]; ok2 && mn.Type == NodeEOC {
 					covered++
 					break
 				}
@@ -461,14 +461,14 @@ func (e *Engine) commsCoverage(net *NetworkAnalysis) float64 {
 	return round2(float64(covered) / float64(total) * 100)
 }
 
-func (e *Engine) roadAccessibility(facilities []string, roadReach map[string]bool) float64 {
+func (eng *Engine) roadAccessibility(facilities []string, roadReach map[string]bool) float64 {
 	var total, open int
-	for _, c := range e.conns {
-		if c.Type != EdgeRoad {
+	for _, conn := range eng.conns {
+		if conn.Type != EdgeRoad {
 			continue
 		}
 		total++
-		if !c.Blocked {
+		if !conn.Blocked {
 			open++
 		}
 	}
@@ -477,8 +477,8 @@ func (e *Engine) roadAccessibility(facilities []string, roadReach map[string]boo
 		segPct = float64(open) / float64(total) * 100
 	}
 	reachCount := 0
-	for _, f := range facilities {
-		if roadReach[f] {
+	for _, facilityId := range facilities {
+		if roadReach[facilityId] {
 			reachCount++
 		}
 	}
@@ -489,17 +489,17 @@ func (e *Engine) roadAccessibility(facilities []string, roadReach map[string]boo
 	return round2(segPct*0.55 + facPct*0.45)
 }
 
-func (e *Engine) deliveryMetrics(net *NetworkAnalysis, facilities []string) (float64, float64) {
+func (eng *Engine) deliveryMetrics(net *NetworkAnalysis, facilities []string) (float64, float64) {
 	if len(facilities) == 0 {
 		return 0, 0
 	}
 	var dsum, lsum float64
 	var lcount int
-	for _, f := range facilities {
-		if v, ok := net.Delivery[f]; ok && v > 0 {
+	for _, facilityId := range facilities {
+		if v, ok := net.Delivery[facilityId]; ok && v > 0 {
 			dsum += v
 		}
-		if v, ok := net.Latency[f]; ok && v > 0 {
+		if v, ok := net.Latency[facilityId]; ok && v > 0 {
 			lsum += v
 			lcount++
 		}
@@ -512,22 +512,22 @@ func (e *Engine) deliveryMetrics(net *NetworkAnalysis, facilities []string) (flo
 	return round2(delivery), round2(latency)
 }
 
-func (e *Engine) buildAlerts(net *NetworkAnalysis, facilities, isolated []string, delivery, latency float64) []string {
+func (eng *Engine) buildAlerts(net *NetworkAnalysis, facilities, isolated []string, delivery, latency float64) []string {
 	alerts := make([]string, 0, 8)
-	for id, n := range e.nodes {
-		if n.Type == NodePowerSubstation && !n.Operational {
-			alerts = append(alerts, "GRID: "+n.Name+" OFFLINE ("+n.Reason+")")
+	for id, node := range eng.nodes {
+		if node.Type == NodePowerSubstation && !node.Operational {
+			alerts = append(alerts, "GRID: "+node.Name+" OFFLINE ("+node.Reason+")")
 		}
-		if n.Type.IsComms() && !n.Operational {
-			alerts = append(alerts, "COMMS: "+n.Name+" OFFLINE")
+		if node.Type.IsComms() && !node.Operational {
+			alerts = append(alerts, "COMMS: "+node.Name+" OFFLINE")
 		}
-		if n.Type == NodeRoadIntersection && !n.Operational {
-			alerts = append(alerts, "TRAFFIC: "+n.Name+" CONTROL LOST")
+		if node.Type == NodeRoadIntersection && !node.Operational {
+			alerts = append(alerts, "TRAFFIC: "+node.Name+" CONTROL LOST")
 		}
 		_ = id
 	}
-	for _, f := range isolated {
-		alerts = append(alerts, "ISOLATION: "+e.nodes[f].Name+" has no comms or road path to command")
+	for _, facilityId := range isolated {
+		alerts = append(alerts, "ISOLATION: "+eng.nodes[facilityId].Name+" has no comms or road path to command")
 	}
 	if len(net.MeshBackoff) > 0 {
 		alerts = append(alerts, fmt.Sprintf("MESH: %d facilities on low-bandwidth fallback", len(net.MeshBackoff)))
@@ -545,8 +545,8 @@ func (e *Engine) buildAlerts(net *NetworkAnalysis, facilities, isolated []string
 	return alerts
 }
 
-func categoryFor(t NodeType) EventCategory {
-	switch t {
+func categoryFor(nodeType NodeType) EventCategory {
+	switch nodeType {
 	case NodePowerSubstation:
 		return CatPower
 	case NodeCellTower, NodeRadioMesh:
@@ -566,18 +566,18 @@ func labelFor(conns map[string]*Connection, id string) string {
 	return id
 }
 
-func contains(list []string, v string) bool {
-	for _, s := range list {
-		if s == v {
+func contains(list []string, value string) bool {
+	for _, entry := range list {
+		if entry == value {
 			return true
 		}
 	}
 	return false
 }
 
-func (e *Engine) collectListenersLocked() []func(*SimulationState) {
-	out := make([]func(*SimulationState), 0, len(e.listeners))
-	for _, fn := range e.listeners {
+func (eng *Engine) collectListenersLocked() []func(*SimulationState) {
+	out := make([]func(*SimulationState), 0, len(eng.listeners))
+	for _, fn := range eng.listeners {
 		out = append(out, fn)
 	}
 	return out
@@ -590,141 +590,172 @@ func notify(listeners []func(*SimulationState), state *SimulationState) {
 	}
 }
 
-func (e *Engine) publish() {
-	e.mu.RLock()
-	state := e.buildStateLocked()
-	listeners := e.collectListenersLocked()
-	e.mu.RUnlock()
+func (eng *Engine) publish() {
+	eng.mu.Lock()
+	eng.revision++
+	state := eng.buildStateLocked()
+	listeners := eng.collectListenersLocked()
+	eng.mu.Unlock()
 	notify(listeners, state)
 }
 
-func (e *Engine) Subscribe(fn func(*SimulationState)) int {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	e.nextSub++
-	id := e.nextSub
-	e.listeners[id] = fn
+func (eng *Engine) Subscribe(fn func(*SimulationState)) int {
+	eng.mu.Lock()
+	defer eng.mu.Unlock()
+	eng.nextSub++
+	id := eng.nextSub
+	eng.listeners[id] = fn
 	return id
 }
 
-func (e *Engine) Unsubscribe(id int) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	delete(e.listeners, id)
+func (eng *Engine) Unsubscribe(id int) {
+	eng.mu.Lock()
+	defer eng.mu.Unlock()
+	delete(eng.listeners, id)
 }
 
-func (e *Engine) Snapshot() *SimulationState {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.buildStateLocked().Clone()
+func (eng *Engine) Snapshot() *SimulationState {
+	eng.mu.RLock()
+	defer eng.mu.RUnlock()
+	return eng.buildStateLocked().Clone()
 }
 
-func (e *Engine) InjectNodeFailure(targetID string) (string, error) {
-	e.mu.Lock()
-	n, ok := FailNode(e.nodes, e.conns, targetID, SourceOperator)
+func (eng *Engine) InjectNodeFailure(targetID string) (string, error) {
+	eng.mu.Lock()
+	n, ok := FailNode(eng.nodes, eng.conns, targetID, SourceOperator)
 	if !ok {
-		current := e.nodes[targetID]
+		current := eng.nodes[targetID]
 		if current == nil {
-			e.mu.Unlock()
+			eng.mu.Unlock()
 			return "", fmt.Errorf("unknown node %q", targetID)
 		}
-		e.logEvent(EventWarning, CatCommand, "COMMAND", targetID, n.Name+" already offline", 0)
-		e.mu.Unlock()
-		e.publish()
+		eng.logEvent(EventWarning, CatCommand, "COMMAND", targetID, n.Name+" already offline", 0)
+		eng.mu.Unlock()
+		eng.publish()
 		return n.ID, nil
 	}
-	e.logEvent(EventFailure, categoryFor(n.Type), "OPERATOR", n.ID,
+	eng.logEvent(EventFailure, categoryFor(n.Type), "OPERATOR", n.ID,
 		fmt.Sprintf("%s taken offline by operator command (%s)", n.Name, n.Type), 0)
-	graph := NewDependencyGraph(e.nodes)
-	failures := graph.EvaluateDependencies(e.nodes, e.conns, e.hz.Flooded)
-	for _, f := range failures {
-		fn := e.nodes[f.ID]
-		e.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
-			fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, f.Reason, f.Depth), f.Depth)
+	graph := NewDependencyGraph(eng.nodes)
+	failures := graph.EvaluateDependencies(eng.nodes, eng.conns, eng.hz.Flooded)
+	for _, failure := range failures {
+		fn := eng.nodes[failure.ID]
+		eng.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
+			fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, failure.Reason, failure.Depth), failure.Depth)
 	}
-	e.applyRoutingLocked()
-	e.mu.Unlock()
-	e.publish()
+	eng.applyRoutingLocked()
+	eng.mu.Unlock()
+	eng.publish()
 	return n.ID, nil
 }
 
-func (e *Engine) InjectRoadBlock(connID string) (string, error) {
-	e.mu.Lock()
-	c, changed := BlockConnection(e.conns, connID)
+func (eng *Engine) InjectRoadBlock(connID string) (string, error) {
+	eng.mu.Lock()
+	c, changed := BlockConnection(eng.conns, connID)
 	if !changed {
 		if c == nil {
-			e.mu.Unlock()
+			eng.mu.Unlock()
 			return "", fmt.Errorf("unknown connection %q", connID)
 		}
-		e.logEvent(EventWarning, CatRoad, "COMMAND", connID, c.ID+" already blocked", 0)
-		e.mu.Unlock()
-		e.publish()
+		eng.logEvent(EventWarning, CatRoad, "COMMAND", connID, c.ID+" already blocked", 0)
+		eng.mu.Unlock()
+		eng.publish()
 		return c.ID, nil
 	}
-	e.logEvent(EventFailure, CatRoad, "OPERATOR", connID,
+	eng.logEvent(EventFailure, CatRoad, "OPERATOR", connID,
 		fmt.Sprintf("Road segment %s blocked (obstruction reported)", connID), 0)
-	e.applyRoutingLocked()
-	e.mu.Unlock()
-	e.publish()
+	eng.applyRoutingLocked()
+	eng.mu.Unlock()
+	eng.publish()
 	return c.ID, nil
 }
 
-func (e *Engine) RestoreNodeByID(targetID string) (string, error) {
-	e.mu.Lock()
-	n, repaired, ok := RestoreNode(e.nodes, e.conns, e.graph, targetID)
+func (eng *Engine) RestoreNodeByID(targetID string) (string, error) {
+	eng.mu.Lock()
+	n, repaired, ok := RestoreNode(eng.nodes, eng.conns, eng.graph, targetID)
 	if !ok {
 		if n == nil {
-			e.mu.Unlock()
+			eng.mu.Unlock()
 			return "", fmt.Errorf("unknown node %q", targetID)
 		}
-		blocking := blockingPrerequisites(e.graph, e.nodes, targetID)
-		e.logEvent(EventWarning, CatCommand, "COMMAND", targetID,
+		blocking := blockingPrerequisites(eng.graph, eng.nodes, targetID)
+		eng.logEvent(EventWarning, CatCommand, "COMMAND", targetID,
 			fmt.Sprintf("Restore of %s denied: prerequisite %s still offline", n.Name, blocking[0]), 0)
-		e.mu.Unlock()
-		e.publish()
+		eng.mu.Unlock()
+		eng.publish()
 		return n.ID, nil
 	}
-	e.logEvent(EventSuccess, categoryFor(n.Type), "OPERATOR", n.ID,
+	eng.logEvent(EventSuccess, categoryFor(n.Type), "OPERATOR", n.ID,
 		fmt.Sprintf("%s restored to service; %d links re-energised", n.Name, len(repaired)), 0)
-	graph := NewDependencyGraph(e.nodes)
-	for _, f := range graph.EvaluateDependencies(e.nodes, e.conns, e.hz.Flooded) {
-		fn := e.nodes[f.ID]
-		e.logEvent(EventSuccess, categoryFor(fn.Type), string(SourceCascade), fn.ID,
-			fmt.Sprintf("%s back online after prerequisite restoration", fn.Name), f.Depth)
+	graph := NewDependencyGraph(eng.nodes)
+	for _, verdict := range graph.EvaluateDependencies(eng.nodes, eng.conns, eng.hz.Flooded) {
+		fn := eng.nodes[verdict.ID]
+		eng.logEvent(EventSuccess, categoryFor(fn.Type), string(SourceCascade), fn.ID,
+			fmt.Sprintf("%s back online after prerequisite restoration", fn.Name), verdict.Depth)
 	}
-	e.applyRoutingLocked()
-	e.mu.Unlock()
-	e.publish()
+	eng.applyRoutingLocked()
+	eng.mu.Unlock()
+	eng.publish()
 	return n.ID, nil
 }
 
-func (e *Engine) ApplyPreset(id string) error {
-	e.mu.Lock()
+func (eng *Engine) ApplyPreset(id string) error {
+	eng.mu.Lock()
+	err := eng.applyPresetLocked(id)
+	eng.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	eng.publish()
+	return nil
+}
+
+func (eng *Engine) ApplyPresets(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	eng.mu.Lock()
+	var errs []string
+	for _, id := range ids {
+		if err := eng.applyPresetLocked(id); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+	eng.logEvent(EventWarning, CatCommand, "OPERATOR", "",
+		fmt.Sprintf("STACKED %d EVENT(S): %s", len(ids), strings.Join(ids, " + ")), 0)
+	eng.mu.Unlock()
+	eng.publish()
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+func (eng *Engine) applyPresetLocked(id string) error {
 	var preset *Preset
-	for i := range e.scenario.Presets {
-		if e.scenario.Presets[i].ID == id {
-			preset = &e.scenario.Presets[i]
+	for i := range eng.scenario.Presets {
+		if eng.scenario.Presets[i].ID == id {
+			preset = &eng.scenario.Presets[i]
 			break
 		}
 	}
 	if preset == nil {
-		e.mu.Unlock()
 		return fmt.Errorf("unknown preset %q", id)
 	}
 	kind := preset.Kind
 	target := preset.TargetID
-	e.logEvent(EventWarning, CatCommand, "OPERATOR", target,
+	eng.logEvent(EventWarning, CatCommand, "OPERATOR", target,
 		fmt.Sprintf("PRESET ACTIVATED: %s (%s)", preset.Label, preset.Description), 0)
 	switch kind {
 	case "HAZARD":
-		ActivateHurricane(e.hz, e.conns, e.tick, preset.Intensity)
-		graph := NewDependencyGraph(e.nodes)
-		for _, f := range graph.EvaluateDependencies(e.nodes, e.conns, e.hz.Flooded) {
-			fn := e.nodes[f.ID]
-			e.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
-				fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, f.Reason, f.Depth), f.Depth)
+		ActivateHurricane(eng.hz, eng.conns, eng.tick, preset.Intensity)
+		graph := NewDependencyGraph(eng.nodes)
+		for _, verdict := range graph.EvaluateDependencies(eng.nodes, eng.conns, eng.hz.Flooded) {
+			fn := eng.nodes[verdict.ID]
+			eng.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
+				fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, verdict.Reason, verdict.Depth), verdict.Depth)
 		}
-		e.applyRoutingLocked()
+		eng.applyRoutingLocked()
 	case "NODE_FAILURE":
 		ids := strings.Split(target, ",")
 		changed := false
@@ -733,45 +764,42 @@ func (e *Engine) ApplyPreset(id string) error {
 			if tid == "" {
 				continue
 			}
-			n, ok := FailNode(e.nodes, e.conns, tid, SourceOperator)
+			n, ok := FailNode(eng.nodes, eng.conns, tid, SourceOperator)
 			if n == nil {
-				e.mu.Unlock()
 				return fmt.Errorf("unknown preset target %q", tid)
 			}
 			if ok {
 				changed = true
-				e.logEvent(EventFailure, categoryFor(n.Type), "OPERATOR", n.ID,
+				eng.logEvent(EventFailure, categoryFor(n.Type), "OPERATOR", n.ID,
 					fmt.Sprintf("%s taken offline by preset %s", n.Name, preset.Label), 0)
 			}
 		}
 		if !changed {
-			e.mu.Unlock()
-			e.publish()
 			return nil
 		}
-		graph := NewDependencyGraph(e.nodes)
-		for _, f := range graph.EvaluateDependencies(e.nodes, e.conns, e.hz.Flooded) {
-			fn := e.nodes[f.ID]
-			e.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
-				fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, f.Reason, f.Depth), f.Depth)
+		graph := NewDependencyGraph(eng.nodes)
+		for _, verdict := range graph.EvaluateDependencies(eng.nodes, eng.conns, eng.hz.Flooded) {
+			fn := eng.nodes[verdict.ID]
+			eng.logEvent(EventCascade, categoryFor(fn.Type), string(SourceCascade), fn.ID,
+				fmt.Sprintf("%s OFFLINE via %s (cascade depth %d)", fn.Name, verdict.Reason, verdict.Depth), verdict.Depth)
 		}
-		e.applyRoutingLocked()
+		eng.applyRoutingLocked()
 	case "ROAD_BLOCK":
-		if c, changed := BlockConnection(e.conns, target); changed {
-			e.logEvent(EventFailure, CatRoad, "OPERATOR", target,
+		if c, changed := BlockConnection(eng.conns, target); changed {
+			eng.logEvent(EventFailure, CatRoad, "OPERATOR", target,
 				fmt.Sprintf("Road segment %s flooded by preset %s", target, preset.Label), 0)
 			_ = c
 		}
-		e.applyRoutingLocked()
+		eng.applyRoutingLocked()
 	case "FLOOD_ZONE":
-		ids := make([]string, 0, len(e.conns))
-		for id := range e.conns {
+		ids := make([]string, 0, len(eng.conns))
+		for id := range eng.conns {
 			ids = append(ids, id)
 		}
 		sort.Strings(ids)
 		sealed := 0
 		for _, id := range ids {
-			c := e.conns[id]
+			c := eng.conns[id]
 			if c.Type != EdgeRoad || c.Blocked || c.Risk() < 0.6 {
 				continue
 			}
@@ -779,28 +807,26 @@ func (e *Engine) ApplyPreset(id string) error {
 			c.Active = false
 			c.Flooded = true
 			c.Failures++
-			e.hz.Flooded[id] = true
-			e.logEvent(EventFailure, CatRoad, "OPERATOR", id,
-				fmt.Sprintf("Storm surge seals %s (flood risk %.0f%%)", id, c.Risk()*100), 1)
+			eng.hz.Flooded[id] = true
+			eng.logEvent(EventFailure, CatRoad, "OPERATOR", id,
+				fmt.Sprintf("Flooding seals %s (flood risk %.0f%%)", id, c.Risk()*100), 1)
 			sealed++
 		}
-		e.applyRoutingLocked()
+		eng.applyRoutingLocked()
 	}
-	e.mu.Unlock()
-	e.publish()
 	return nil
 }
 
-func (e *Engine) Reset() {
-	e.mu.Lock()
-	if e.running {
-		e.running = false
-		close(e.stop)
-		<-e.done
+func (eng *Engine) Reset() {
+	eng.mu.Lock()
+	if eng.running {
+		eng.running = false
+		close(eng.stop)
+		<-eng.done
 	}
-	e.loadLocked()
-	e.logEvent(EventInfo, CatCommand, "COMMAND", "",
-		fmt.Sprintf("RESET to T+00:00 :: %s", e.scenario.Name), 0)
-	e.mu.Unlock()
-	e.publish()
+	eng.loadLocked()
+	eng.logEvent(EventInfo, CatCommand, "COMMAND", "",
+		fmt.Sprintf("RESET to T+00:00 :: %s", eng.scenario.Name), 0)
+	eng.mu.Unlock()
+	eng.publish()
 }

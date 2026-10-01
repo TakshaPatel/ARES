@@ -1,37 +1,23 @@
-import { useEffect, useMemo, useRef } from 'react'
-import maplibregl, { type GeoJSONSource, type LngLatLike, type StyleSpecification } from 'maplibre-gl'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
+import maplibregl, { type GeoJSONSource, type StyleSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSimStore } from '../store/useSimStore'
+import { CENTER, FALLBACK_STYLE, SATELLITE_STYLE, ZOOM } from '../lib/maptiler'
+import { C, NODE_COLOR, NODE_LETTER } from '../lib/theme'
 import type { InfrastructureNode, NodeType } from '../types/simulation'
 
-const CENTER: LngLatLike = [-82.478, 27.893]
-const ZOOM = 11.4
-
-const STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    base: {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors © CARTO',
-    },
-  },
-  layers: [{ id: 'base', type: 'raster', source: 'base' }],
-}
-
 const GLYPH: Record<NodeType, { label: string; color: string }> = {
-  POWER_SUBSTATION: { label: '⚡', color: '#fbbf24' },
-  CELL_TOWER: { label: '📡', color: '#22d3ee' },
-  RADIO_MESH: { label: '📶', color: '#818cf8' },
-  ROAD_INTERSECTION: { label: '🚦', color: '#cbd5e1' },
-  HOSPITAL: { label: '🏥', color: '#34d399' },
-  FIRE_STATION: { label: '🚒', color: '#fb923c' },
-  EMERGENCY_OPS_CENTER: { label: '🏢', color: '#f472b6' },
+  POWER_SUBSTATION: { label: NODE_LETTER.POWER_SUBSTATION, color: NODE_COLOR.POWER_SUBSTATION },
+  CELL_TOWER: { label: NODE_LETTER.CELL_TOWER, color: NODE_COLOR.CELL_TOWER },
+  RADIO_MESH: { label: NODE_LETTER.RADIO_MESH, color: NODE_COLOR.RADIO_MESH },
+  ROAD_INTERSECTION: { label: NODE_LETTER.ROAD_INTERSECTION, color: NODE_COLOR.ROAD_INTERSECTION },
+  HOSPITAL: { label: NODE_LETTER.HOSPITAL, color: NODE_COLOR.HOSPITAL },
+  FIRE_STATION: { label: NODE_LETTER.FIRE_STATION, color: NODE_COLOR.FIRE_STATION },
+  EMERGENCY_OPS_CENTER: {
+    label: NODE_LETTER.EMERGENCY_OPS_CENTER,
+    color: NODE_COLOR.EMERGENCY_OPS_CENTER,
+  },
 }
 
 type FeatureCollection = GeoJSON.FeatureCollection
@@ -132,7 +118,7 @@ function routeFC(state: ReturnType<typeof useSimStore.getState>['state']): Featu
   return { type: 'FeatureCollection', features }
 }
 
-export default function MapView() {
+export default function MapView({ active = true }: { active?: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const readyRef = useRef(false)
@@ -140,18 +126,40 @@ export default function MapView() {
   const selectNode = useSimStore((s) => s.selectNode)
   const selectedNodeId = useSimStore((s) => s.selectedNodeId)
   const pulseIds = useSimStore((s) => s.pulseIds)
+  const viewCenter = useSimStore((s) => s.view.center)
+  const viewZoom = useSimStore((s) => s.view.zoom)
+  const viewLabel = useSimStore((s) => s.view.label)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: STYLE,
-      center: CENTER,
-      zoom: ZOOM,
-      attributionControl: false,
-    })
+    const canFallback = SATELLITE_STYLE !== null
+    let map: maplibregl.Map
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: SATELLITE_STYLE ?? FALLBACK_STYLE,
+        center: viewCenter ?? CENTER,
+        zoom: viewZoom ?? ZOOM,
+        attributionControl: false,
+      })
+    } catch (err) {
+      console.warn('map init failed', err)
+      setMapError('Map rendering is unavailable in this browser (WebGL disabled). The rest of the console still works.')
+      return
+    }
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
+
+    let fellBack = false
+    map.on('error', (e) => {
+      if (!fellBack && canFallback) {
+        fellBack = true
+        map.setStyle(FALLBACK_STYLE as StyleSpecification)
+        return
+      }
+      console.warn('map error', e)
+    })
 
     map.on('load', () => {
       map.addSource('power', { type: 'geojson', data: emptyFC() })
@@ -166,7 +174,7 @@ export default function MapView() {
         source: 'roads',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': ['case', ['get', 'blocked'], '#ef4444', '#475569'],
+          'line-color': ['case', ['get', 'blocked'], C.danger, C.road],
           'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2.5, 14, 7],
           'line-opacity': 0.85,
         },
@@ -177,12 +185,13 @@ export default function MapView() {
         source: 'roads',
         filter: ['==', ['get', 'blocked'], true],
         layout: {
-          'text-field': '✕',
+          'text-field': 'x',
+          'text-font': ['Noto Sans Regular'],
           'text-size': 13,
           'text-rotate': 0,
           'text-allow-overlap': true,
         },
-        paint: { 'text-color': '#fecaca' },
+        paint: { 'text-color': C.ink },
       })
       map.addLayer({
         id: 'power-lines',
@@ -190,7 +199,7 @@ export default function MapView() {
         source: 'power',
         layout: { 'line-cap': 'round' },
         paint: {
-          'line-color': ['case', ['get', 'dead'], '#7f1d1d', '#facc15'],
+          'line-color': ['case', ['get', 'dead'], C.deadLine, NODE_COLOR.POWER_SUBSTATION],
           'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 14, 3.4],
           'line-dasharray': [3, 2.5],
           'line-opacity': ['case', ['get', 'dead'], 0.4, 0.95],
@@ -202,7 +211,7 @@ export default function MapView() {
         source: 'mesh',
         layout: { 'line-cap': 'round' },
         paint: {
-          'line-color': ['case', ['get', 'dead'], '#334155', '#22d3ee'],
+          'line-color': ['case', ['get', 'dead'], C.dead, NODE_COLOR.CELL_TOWER],
           'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 14, 2],
           'line-opacity': ['case', ['get', 'dead'], 0.25, 0.8],
         },
@@ -213,7 +222,7 @@ export default function MapView() {
         source: 'routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#22c55e',
+          'line-color': C.ink,
           'line-width': ['interpolate', ['linear'], ['zoom'], 9, 4, 14, 10],
           'line-opacity': 0.25,
           'line-blur': 3,
@@ -225,7 +234,7 @@ export default function MapView() {
         source: 'routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': ['case', ['get', 'degraded'], '#f59e0b', '#4ade80'],
+          'line-color': ['case', ['get', 'degraded'], C.warn, C.ink],
           'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.6, 14, 3.6],
           'line-dasharray': [2.2, 1.6],
         },
@@ -236,7 +245,7 @@ export default function MapView() {
         source: 'nodes',
         paint: {
           'circle-radius': ['case', ['get', 'operational'], 11, 13],
-          'circle-color': ['case', ['get', 'operational'], '#22d3ee', '#ef4444'],
+          'circle-color': ['case', ['get', 'operational'], C.comms, C.danger],
           'circle-opacity': 0.14,
           'circle-blur': 0.6,
         },
@@ -251,10 +260,10 @@ export default function MapView() {
             'case',
             ['get', 'operational'],
             ['get', 'color'],
-            '#7f1d1d',
+            C.dangerFill,
           ],
           'circle-stroke-width': 1.4,
-          'circle-stroke-color': ['case', ['get', 'operational'], '#0f172a', '#ef4444'],
+          'circle-stroke-color': ['case', ['get', 'operational'], C.darkInk, C.danger],
           'circle-opacity': 0.95,
         },
       })
@@ -264,11 +273,12 @@ export default function MapView() {
         source: 'nodes',
         layout: {
           'text-field': ['get', 'glyph'],
-          'text-size': 11,
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 10,
           'text-allow-overlap': true,
           'text-ignore-placement': true,
         },
-        paint: { 'text-color': '#0f172a' },
+        paint: { 'text-color': C.darkInk },
       })
       map.addLayer({
         id: 'nodes-label',
@@ -277,14 +287,15 @@ export default function MapView() {
         minzoom: 12.2,
         layout: {
           'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Regular'],
           'text-size': 10,
           'text-offset': [0, 1.5],
           'text-anchor': 'top',
           'text-allow-overlap': false,
         },
         paint: {
-          'text-color': '#e2e8f0',
-          'text-halo-color': '#020617',
+          'text-color': C.ink,
+          'text-halo-color': C.halo,
           'text-halo-width': 1.4,
         },
       })
@@ -300,7 +311,6 @@ export default function MapView() {
         map.getCanvas().style.cursor = ''
       })
 
-      readyRef.current = true
       readyRef.current = true
     })
 
@@ -337,13 +347,13 @@ export default function MapView() {
     map.setFilter('nodes-halo', ['in', ['get', 'id'], ['literal', pulseIds]])
     map.setPaintProperty('nodes-halo', 'circle-radius', 20)
     map.setPaintProperty('nodes-halo', 'circle-opacity', 0.85)
-    map.setPaintProperty('nodes-halo', 'circle-color', '#ef4444')
+    map.setPaintProperty('nodes-halo', 'circle-color', C.danger)
     const t = window.setTimeout(() => {
       if (!mapRef.current) return
       mapRef.current.setFilter('nodes-halo', null)
       mapRef.current.setPaintProperty('nodes-halo', 'circle-radius', ['case', ['get', 'operational'], 11, 13])
       mapRef.current.setPaintProperty('nodes-halo', 'circle-opacity', 0.14)
-      mapRef.current.setPaintProperty('nodes-halo', 'circle-color', ['case', ['get', 'operational'], '#22d3ee', '#ef4444'])
+      mapRef.current.setPaintProperty('nodes-halo', 'circle-color', ['case', ['get', 'operational'], C.comms, C.danger])
     }, 1300)
     return () => window.clearTimeout(t)
   }, [pulseIds])
@@ -356,21 +366,57 @@ export default function MapView() {
     map.easeTo({ center: [n.lng, n.lat], zoom: Math.max(map.getZoom(), 13), duration: 700 })
   }, [selectedNodeId, state])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (viewCenter) map.jumpTo({ center: viewCenter, zoom: viewZoom ?? map.getZoom() })
+    else map.jumpTo({ center: CENTER, zoom: ZOOM })
+  }, [viewCenter, viewZoom])
+
+  useEffect(() => {
+    if (!active) return
+    const map = mapRef.current
+    const el = containerRef.current
+    if (!map || !el) return
+    const apply = () => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) map.resize()
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [active])
+
   const selected = selectedNodeId && state ? state.nodes[selectedNodeId] : null
 
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1.5 font-mono text-[9px] uppercase tracking-wider">
-        <div className="pointer-events-auto flex gap-2 rounded-md border border-ares-border bg-ares-panel/85 px-2 py-1.5 backdrop-blur">
-          <LegendItem color="#facc15" label="Power" />
-          <LegendItem color="#22d3ee" label="RescueNet" />
-          <LegendItem color="#475569" label="Road" />
-          <LegendItem color="#4ade80" label="EMS" />
+      {mapError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ares-bg p-6 text-center">
+          <AlertTriangle className="h-6 w-6 text-amber-400" />
+          <p className="max-w-sm text-sm leading-relaxed text-neutral-400">{mapError}</p>
+          <p className="text-xs text-neutral-600">
+            Use the Dependency DAG, Reports and Upload tabs in the meantime.
+          </p>
         </div>
+      )}
+
+      <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1.5 text-xs">
+        <div className="pointer-events-auto flex gap-2 rounded border border-neutral-800 bg-neutral-900/85 px-2 py-1.5 backdrop-blur">
+          <LegendItem color={NODE_COLOR.POWER_SUBSTATION} label="Power" />
+          <LegendItem color={NODE_COLOR.CELL_TOWER} label="Comms" />
+          <LegendItem color={C.road} label="Road" />
+          <LegendItem color={NODE_COLOR.HOSPITAL} label="EMS" />
+        </div>
+        {viewLabel && (
+          <div className="pointer-events-auto max-w-[220px] truncate rounded border border-neutral-700 bg-neutral-900/85 px-2 py-1.5 text-xs text-neutral-300 backdrop-blur">
+            {viewLabel}
+          </div>
+        )}
         {state && (
-          <div className="pointer-events-auto rounded-md border border-ares-border bg-ares-panel/85 px-2 py-1.5 text-slate-400 backdrop-blur">
+          <div className="pointer-events-auto rounded border border-neutral-800 bg-neutral-900/85 px-2 py-1.5 text-neutral-400 backdrop-blur">
             {state.diagnostics?.blockedEdges.length ?? 0} blocked · {state.isolatedFacilities.length} isolated ·{' '}
             {state.diagnostics?.emsRoutes.length ?? 0} routes
           </div>
@@ -378,33 +424,33 @@ export default function MapView() {
       </div>
 
       {selected && (
-        <div className="pointer-events-auto absolute bottom-3 left-3 w-64 rounded-md border border-cyan-500/30 bg-ares-panel/95 p-2.5 backdrop-blur">
+        <div className="pointer-events-auto absolute bottom-3 left-3 w-64 rounded border border-neutral-600 bg-neutral-900/95 p-2.5 backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="text-base">{GLYPH[selected.type].label}</span>
             <div className="min-w-0">
-              <p className="truncate text-[11px] font-semibold text-slate-100">{selected.name}</p>
-              <p className="font-mono text-[9px] uppercase tracking-wider text-slate-500">
+              <p className="truncate text-sm font-medium text-neutral-50">{selected.name}</p>
+              <p className="text-xs text-neutral-500">
                 {selected.type.replace(/_/g, ' ')}
               </p>
             </div>
           </div>
-          <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[9px]">
-            <dt className="text-slate-600">Status</dt>
+          <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+            <dt className="text-neutral-600">Status</dt>
             <dd className={selected.operational ? 'text-emerald-400' : 'text-red-400'}>{selected.status}</dd>
-            <dt className="text-slate-600">Health</dt>
-            <dd className="text-slate-300">{selected.health.toFixed(0)}%</dd>
-            <dt className="text-slate-600">Deps</dt>
-            <dd className="truncate text-slate-300">{selected.dependencies.length}</dd>
+            <dt className="text-neutral-600">Health</dt>
+            <dd className="text-neutral-300">{selected.health.toFixed(0)}%</dd>
+            <dt className="text-neutral-600">Deps</dt>
+            <dd className="truncate text-neutral-300">{selected.dependencies.length}</dd>
             {selected.reason && (
               <>
-                <dt className="text-slate-600">Reason</dt>
+                <dt className="text-neutral-600">Reason</dt>
                 <dd className="truncate text-amber-400">{selected.reason}</dd>
               </>
             )}
             {selected.cascadeDepth > 0 && (
               <>
-                <dt className="text-slate-600">Cascade</dt>
-                <dd className="text-orange-400">depth {selected.cascadeDepth}</dd>
+                <dt className="text-neutral-600">Cascade</dt>
+                <dd className="text-orange-300">depth {selected.cascadeDepth}</dd>
               </>
             )}
           </dl>
@@ -416,7 +462,7 @@ export default function MapView() {
 
 function LegendItem({ color, label }: { color: string; label: string }) {
   return (
-    <span className="flex items-center gap-1 text-slate-400">
+    <span className="flex items-center gap-1 text-neutral-400">
       <span className="h-0.5 w-3.5" style={{ backgroundColor: color }} />
       {label}
     </span>

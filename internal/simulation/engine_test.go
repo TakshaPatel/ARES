@@ -27,8 +27,8 @@ func TestScenarioShape(t *testing.T) {
 		t.Fatalf("nodes = %d, want 30", got)
 	}
 	facilities, infra := 0, 0
-	for _, n := range sc.Nodes {
-		if n.Type.IsFacility() {
+	for _, node := range sc.Nodes {
+		if node.Type.IsFacility() {
 			facilities++
 		} else {
 			infra++
@@ -41,8 +41,8 @@ func TestScenarioShape(t *testing.T) {
 		t.Errorf("facilities = %d, want 12", facilities)
 	}
 	counts := map[NodeType]int{}
-	for _, n := range sc.Nodes {
-		counts[n.Type]++
+	for _, node := range sc.Nodes {
+		counts[node.Type]++
 	}
 	if counts[NodePowerSubstation] != 4 {
 		t.Errorf("substations = %d, want 4", counts[NodePowerSubstation])
@@ -59,8 +59,8 @@ func TestScenarioShape(t *testing.T) {
 }
 
 func TestBaselineIsHealthy(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	st := e.Snapshot()
+	sim := NewEngine(loadSeed(t))
+	st := sim.Snapshot()
 	if st.PowerGridHealth < 99 {
 		t.Errorf("baseline power health = %.2f, want ~100", st.PowerGridHealth)
 	}
@@ -82,47 +82,49 @@ func TestBaselineIsHealthy(t *testing.T) {
 }
 
 func TestSubstation01Cascade(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	before := e.Snapshot()
+	sim := NewEngine(loadSeed(t))
+	before := sim.Snapshot()
 	routeBefore := append([]string(nil), before.ActiveEMSRoutes["fire-02"]...)
 	if len(routeBefore) == 0 {
 		t.Fatal("expected a baseline route for fire-02")
 	}
-	usedBridge := false
+	if routeBefore[len(routeBefore)-1] != "hospital-01" {
+		t.Fatalf("baseline fire-02 route does not terminate at RWJ University Hospital: %v", routeBefore)
+	}
+	usedArtery := false
 	for i := 0; i+1 < len(routeBefore); i++ {
-		if routeBefore[i] == "intersection-02" && routeBefore[i+1] == "intersection-05" {
-			usedBridge = true
+		if routeBefore[i] == "intersection-02" && routeBefore[i+1] == "intersection-01" {
+			usedArtery = true
 		}
 	}
-	if !usedBridge {
-		t.Fatalf("baseline fire-02 route does not use the bay bridge: %v", routeBefore)
+	if !usedArtery {
+		t.Fatalf("baseline fire-02 route does not use the NJ-27 / Hermann Road artery: %v", routeBefore)
 	}
 
-	if _, err := e.InjectNodeFailure("substation-01"); err != nil {
+	if _, err := sim.InjectNodeFailure("substation-01"); err != nil {
 		t.Fatal(err)
 	}
-	st := e.Snapshot()
+	st := sim.Snapshot()
 
-	for _, id := range []string{"tower-04", "intersection-03"} {
+	for _, id := range []string{"tower-04", "intersection-03", "hospital-01"} {
 		if st.Nodes[id].Operational {
 			t.Errorf("%s still operational after substation-01 loss", id)
 		}
 	}
-	if st.Connections["road-17"].Blocked != true {
-		t.Error("road-17 (Bay Bridge) was not blocked by the intersection-03 cascade")
+	if st.Connections["road-04"].Blocked != true {
+		t.Error("road-04 (US-130 Bypass at Cozzens Lane) was not blocked by the intersection-03 cascade")
 	}
 	routeAfter := st.ActiveEMSRoutes["fire-02"]
 	if samePath(routeBefore, routeAfter) {
 		t.Errorf("fire-02 route did not reroute: still %v", routeAfter)
 	}
-	stillBridge := false
-	for i := 0; i+1 < len(routeAfter); i++ {
-		if routeAfter[i] == "intersection-02" && routeAfter[i+1] == "intersection-05" {
-			stillBridge = true
+	for _, hop := range routeAfter {
+		if hop == "intersection-03" {
+			t.Errorf("rerouted fire-02 path still crosses the failed junction: %v", routeAfter)
 		}
 	}
-	if stillBridge {
-		t.Errorf("rerouted fire-02 path still crosses the blocked bridge: %v", routeAfter)
+	if routeAfter[len(routeAfter)-1] == "hospital-01" {
+		t.Errorf("fire-02 still routed to the hospital that lost power: %v", routeAfter)
 	}
 
 	var maxDepth int
@@ -144,14 +146,14 @@ func TestSubstation01Cascade(t *testing.T) {
 }
 
 func TestRestoreUnblocksPrerequisite(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	if _, err := e.InjectNodeFailure("substation-01"); err != nil {
+	sim := NewEngine(loadSeed(t))
+	if _, err := sim.InjectNodeFailure("substation-01"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.RestoreNodeByID("substation-01"); err != nil {
+	if _, err := sim.RestoreNodeByID("substation-01"); err != nil {
 		t.Fatal(err)
 	}
-	st := e.Snapshot()
+	st := sim.Snapshot()
 	if !st.Nodes["substation-01"].Operational {
 		t.Fatal("substation-01 not operational after restore")
 	}
@@ -164,14 +166,14 @@ func TestRestoreUnblocksPrerequisite(t *testing.T) {
 }
 
 func TestRestoreDeniedWhilePrereqDown(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	if _, err := e.InjectNodeFailure("substation-01"); err != nil {
+	sim := NewEngine(loadSeed(t))
+	if _, err := sim.InjectNodeFailure("substation-01"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := e.RestoreNodeByID("tower-04"); err != nil {
+	if _, err := sim.RestoreNodeByID("tower-04"); err != nil {
 		t.Fatal(err)
 	}
-	st := e.Snapshot()
+	st := sim.Snapshot()
 	if st.Nodes["tower-04"].Operational {
 		t.Error("tower-04 revived while its only power prerequisite was still offline")
 	}
@@ -181,23 +183,23 @@ func TestRestoreDeniedWhilePrereqDown(t *testing.T) {
 }
 
 func TestRoadBlockReroute(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	before := e.Snapshot().ActiveEMSRoutes["fire-02"]
-	if _, err := e.InjectRoadBlock("road-17"); err != nil {
+	sim := NewEngine(loadSeed(t))
+	before := sim.Snapshot().ActiveEMSRoutes["fire-02"]
+	if _, err := sim.InjectRoadBlock("road-01"); err != nil {
 		t.Fatal(err)
 	}
-	after := e.Snapshot().ActiveEMSRoutes["fire-02"]
+	after := sim.Snapshot().ActiveEMSRoutes["fire-02"]
 	if samePath(before, after) {
-		t.Error("blocking road-17 did not change the fire-02 route")
+		t.Error("blocking road-01 did not change the fire-02 route")
 	}
 }
 
 func TestRoutesNeverTraverseFailedJunctions(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	if _, err := e.InjectNodeFailure("substation-01"); err != nil {
+	sim := NewEngine(loadSeed(t))
+	if _, err := sim.InjectNodeFailure("substation-01"); err != nil {
 		t.Fatal(err)
 	}
-	snap := e.Snapshot()
+	snap := sim.Snapshot()
 	for _, id := range []string{"tower-04", "intersection-03"} {
 		n, ok := snap.Nodes[id]
 		if !ok {
@@ -207,10 +209,10 @@ func TestRoutesNeverTraverseFailedJunctions(t *testing.T) {
 			t.Fatalf("test precondition: %s should be failed after the substation-01 cascade", id)
 		}
 	}
-	for _, r := range snap.Diagnostics.EmsRoutes {
-		for _, hop := range r.Nodes {
-			if n, ok := snap.Nodes[hop]; ok && n.Type == NodeRoadIntersection && !n.Operational {
-				t.Errorf("route %s traverses failed junction %s", r.ID, hop)
+	for _, route := range snap.Diagnostics.EmsRoutes {
+		for _, node := range route.Nodes {
+			if n, ok := snap.Nodes[node]; ok && n.Type == NodeRoadIntersection && !n.Operational {
+				t.Errorf("route %s traverses failed junction %s", route.ID, node)
 			}
 		}
 	}
@@ -224,14 +226,14 @@ func TestRoutesNeverTraverseFailedJunctions(t *testing.T) {
 }
 
 func TestHurricaneProgressesAndIsolates(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	if err := e.ApplyPreset("PRESET-HURRICANE"); err != nil {
+	sim := NewEngine(loadSeed(t))
+	if err := sim.ApplyPreset("PRESET-HURRICANE"); err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 10; i++ {
-		e.TickOnce()
+		sim.TickOnce()
 	}
-	st := e.Snapshot()
+	st := sim.Snapshot()
 	if st.PowerGridHealth >= 100 {
 		t.Error("hurricane produced no grid degradation")
 	}
@@ -239,15 +241,15 @@ func TestHurricaneProgressesAndIsolates(t *testing.T) {
 		t.Error("hurricane blocked no road segments")
 	}
 	if st.RoadAccessibility >= 100 {
-		t.Error("road accessibility did not degrade under storm surge")
+		t.Error("road accessibility did not degrade under flooding")
 	}
 }
 
 func TestTopologicalOrderIsComplete(t *testing.T) {
 	sc := loadSeed(t)
 	nodes := map[string]*InfrastructureNode{}
-	for _, n := range sc.Nodes {
-		c := *n
+	for _, node := range sc.Nodes {
+		c := *node
 		nodes[c.ID] = &c
 	}
 	g := NewDependencyGraph(nodes)
@@ -260,9 +262,9 @@ func TestTopologicalOrderIsComplete(t *testing.T) {
 		pos[id] = i
 	}
 	for _, id := range g.Order {
-		for _, p := range g.Prerequisites[id] {
-			if pos[p] > pos[id] {
-				t.Errorf("node %s ordered before its prerequisite %s", id, p)
+		for _, prereqId := range g.Prerequisites[id] {
+			if pos[prereqId] > pos[id] {
+				t.Errorf("node %s ordered before its prerequisite %s", id, prereqId)
 			}
 		}
 	}
@@ -310,8 +312,8 @@ func TestAstarAvoidsBlockedSegments(t *testing.T) {
 	sc := loadSeed(t)
 	nodes := map[string]*InfrastructureNode{}
 	conns := map[string]*Connection{}
-	for _, n := range sc.Nodes {
-		c := *n
+	for _, node := range sc.Nodes {
+		c := *node
 		nodes[c.ID] = &c
 	}
 	for _, cn := range sc.Connections {
@@ -319,18 +321,18 @@ func TestAstarAvoidsBlockedSegments(t *testing.T) {
 		conns[c.ID] = &c
 	}
 	adj := BuildRoadAdjacency(nodes, conns)
-	viaBridge := AstarRoad(nodes, adj, "fire-02", "hospital-02")
-	if viaBridge == nil {
-		t.Fatal("no baseline road route fire-02 -> hospital-02")
+	viaArtery := AstarRoad(nodes, adj, "fire-02", "hospital-01")
+	if viaArtery == nil {
+		t.Fatal("no baseline road route fire-02 -> hospital-01")
 	}
-	conns["road-17"].Blocked = true
-	conns["road-17"].Active = false
+	conns["road-02"].Blocked = true
+	conns["road-02"].Active = false
 	adj2 := BuildRoadAdjacency(nodes, conns)
-	detour := AstarRoad(nodes, adj2, "fire-02", "hospital-02")
+	detour := AstarRoad(nodes, adj2, "fire-02", "hospital-01")
 	if detour == nil {
-		t.Fatal("no detour available once the bridge is blocked")
+		t.Fatal("no detour available once Jersey Avenue is blocked")
 	}
-	if samePath(viaBridge.Nodes, detour.Nodes) {
+	if samePath(viaArtery.Nodes, detour.Nodes) {
 		t.Error("A* returned the blocked path")
 	}
 	finalisePath(adj2, detour)
@@ -343,8 +345,8 @@ func TestNetworkAnalysisFindsMeshFallback(t *testing.T) {
 	sc := loadSeed(t)
 	nodes := map[string]*InfrastructureNode{}
 	conns := map[string]*Connection{}
-	for _, n := range sc.Nodes {
-		c := *n
+	for _, node := range sc.Nodes {
+		c := *node
 		nodes[c.ID] = &c
 	}
 	for _, cn := range sc.Connections {
@@ -370,12 +372,97 @@ func TestNetworkAnalysisFindsMeshFallback(t *testing.T) {
 }
 
 func TestStateCloneIsDeep(t *testing.T) {
-	e := NewEngine(loadSeed(t))
-	a := e.Snapshot()
+	sim := NewEngine(loadSeed(t))
+	a := sim.Snapshot()
 	a.Nodes["substation-01"].Health = 0
 	a.Nodes["substation-01"].Operational = false
-	b := e.Snapshot()
+	b := sim.Snapshot()
 	if !b.Nodes["substation-01"].Operational {
 		t.Error("mutating a snapshot leaked into engine state")
+	}
+}
+
+func TestSnapshotEmitsEmptyArraysNotNull(t *testing.T) {
+	sc := loadSeed(t)
+	sim := NewEngine(sc)
+	raw, err := json.Marshal(sim.Snapshot())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var probe struct {
+		Nodes map[string]struct {
+			Dependencies []string `json:"dependencies"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil {
+		t.Fatal(err)
+	}
+	if len(probe.Nodes) == 0 {
+		t.Fatal("expected nodes in snapshot")
+	}
+	for id, node := range probe.Nodes {
+		if node.Dependencies == nil {
+			t.Fatalf("node %q serialized dependencies as null", id)
+		}
+	}
+	if strings.Contains(string(raw), `"dependencies":null`) {
+		t.Fatal("snapshot contains a null dependencies field")
+	}
+}
+
+func TestStackedPresetsCompound(t *testing.T) {
+	sc := loadSeed(t)
+	sim := NewEngine(sc)
+	base := sim.Snapshot()
+
+	if err := sim.ApplyPresets([]string{"PRESET-SUB01"}); err != nil {
+		t.Fatal(err)
+	}
+	one := sim.Snapshot()
+	if one.Nodes["substation-01"].Operational {
+		t.Fatal("substation-01 should be offline after PRESET-SUB01")
+	}
+
+	if err := sim.ApplyPresets([]string{"PRESET-TOWER04", "PRESET-INT03", "PRESET-FLOOD-ZONE"}); err != nil {
+		t.Fatal(err)
+	}
+	stacked := sim.Snapshot()
+
+	down := func(s *SimulationState) int {
+		n := 0
+		for _, node := range s.Nodes {
+			if !node.Operational {
+				n++
+			}
+		}
+		return n
+	}
+	if got, prev := down(stacked), down(one); got < prev {
+		t.Fatalf("stacking did not compound: %d down after stack vs %d after first preset", got, prev)
+	}
+	if down(base) != 0 {
+		t.Fatalf("baseline should be fully operational, got %d down", down(base))
+	}
+	if stacked.Nodes["tower-04"].Operational {
+		t.Fatal("tower-04 should be offline after stacking")
+	}
+	if stacked.Nodes["intersection-03"].Operational {
+		t.Fatal("intersection-03 should be offline after stacking")
+	}
+	if len(stacked.Diagnostics.BlockedEdges) <= len(one.Diagnostics.BlockedEdges) {
+		t.Fatal("FLOOD-ZONE stacking should add blocked edges")
+	}
+}
+
+func TestApplyPresetsRejectsUnknownWithoutAbortingBatch(t *testing.T) {
+	sc := loadSeed(t)
+	sim := NewEngine(sc)
+	err := sim.ApplyPresets([]string{"PRESET-SUB01", "NOPE-NOT-REAL", "PRESET-TOWER04"})
+	if err == nil {
+		t.Fatal("expected an error for the unknown preset")
+	}
+	s := sim.Snapshot()
+	if s.Nodes["substation-01"].Operational || s.Nodes["tower-04"].Operational {
+		t.Fatal("valid presets on either side of a bad id should still apply")
 	}
 }

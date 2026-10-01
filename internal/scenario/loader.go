@@ -179,12 +179,15 @@ func (l *Loader) LoadDir(dir string) error {
 	return nil
 }
 
-func (l *Loader) LoadFromBytes(raw []byte, source string) error {
+func (l *Loader) LoadFromBytes(raw []byte, source string) (string, error) {
 	var sc simulation.Scenario
 	if err := json.Unmarshal(raw, &sc); err != nil {
-		return err
+		return "", err
 	}
-	return l.Add(&sc, source)
+	if err := l.Add(&sc, source); err != nil {
+		return "", err
+	}
+	return sc.ID, nil
 }
 
 func (l *Loader) persist(sc *simulation.Scenario, source string) error {

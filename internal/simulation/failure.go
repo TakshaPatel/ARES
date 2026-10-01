@@ -28,19 +28,19 @@ func NewHazard() *Hazard {
 	return &Hazard{Flooded: map[string]bool{}}
 }
 
-func (h *Hazard) Clone() *Hazard {
-	n := *h
-	n.Flooded = make(map[string]bool, len(h.Flooded))
-	for k, v := range h.Flooded {
-		n.Flooded[k] = v
+func (hazard *Hazard) Clone() *Hazard {
+	n := *hazard
+	n.Flooded = make(map[string]bool, len(hazard.Flooded))
+	for key, value := range hazard.Flooded {
+		n.Flooded[key] = value
 	}
 	return &n
 }
 
-func (h *Hazard) Reset() {
-	h.Active = false
-	h.Intensity = 0
-	h.Flooded = map[string]bool{}
+func (hazard *Hazard) Reset() {
+	hazard.Active = false
+	hazard.Intensity = 0
+	hazard.Flooded = map[string]bool{}
 }
 
 type FailureOutcome struct {
@@ -75,12 +75,12 @@ func FailNode(nodes map[string]*InfrastructureNode, conns map[string]*Connection
 			c.Failures++
 		}
 	}
-	for id, c := range conns {
-		if !c.Active {
+	for id, conn := range conns {
+		if !conn.Active {
 			continue
 		}
-		if c.From == n.ID || c.To == n.ID {
-			c.Active = false
+		if conn.From == n.ID || conn.To == n.ID {
+			conn.Active = false
 			_ = id
 		}
 	}
@@ -108,11 +108,11 @@ func RestoreNode(nodes map[string]*InfrastructureNode, conns map[string]*Connect
 	return n, repaired, true
 }
 
-func blockingPrerequisites(g *DependencyGraph, nodes map[string]*InfrastructureNode, id string) []string {
+func blockingPrerequisites(graph *DependencyGraph, nodes map[string]*InfrastructureNode, id string) []string {
 	var out []string
-	for _, p := range g.Prerequisites[id] {
-		if n, ok := nodes[p]; ok && !n.Operational {
-			out = append(out, p)
+	for _, prereqId := range graph.Prerequisites[id] {
+		if n, ok := nodes[prereqId]; ok && !n.Operational {
+			out = append(out, prereqId)
 		}
 	}
 	sort.Strings(out)
@@ -121,12 +121,12 @@ func blockingPrerequisites(g *DependencyGraph, nodes map[string]*InfrastructureN
 
 func reactivateLinks(conns map[string]*Connection, nodeID string) []string {
 	var out []string
-	for id, c := range conns {
-		if c.Blocked {
+	for id, conn := range conns {
+		if conn.Blocked {
 			continue
 		}
-		if c.From == nodeID || c.To == nodeID {
-			c.Active = true
+		if conn.From == nodeID || conn.To == nodeID {
+			conn.Active = true
 			out = append(out, id)
 		}
 	}
@@ -172,11 +172,11 @@ func ActivateHurricane(hz *Hazard, conns map[string]*Connection, tick int, inten
 	hz.RampPerTick = 0.06
 	hz.OnsetTick = tick
 
-	for id, c := range conns {
-		if c.Type != EdgeRoad {
+	for id, conn := range conns {
+		if conn.Type != EdgeRoad {
 			continue
 		}
-		if c.Risk() >= 0.45 && c.Risk() < 0.9 {
+		if conn.Risk() >= 0.45 && conn.Risk() < 0.9 {
 			hz.Flooded[id] = true
 		}
 	}
@@ -252,7 +252,7 @@ func AdvanceHazard(hz *Hazard, nodes map[string]*InfrastructureNode, conns map[s
 	return out
 }
 
-func windThreshold(t NodeType, intensity float64) float64 {
+func windThreshold(nodeType NodeType, intensity float64) float64 {
 	base := map[NodeType]float64{
 		NodeCellTower:        0.62,
 		NodeRadioMesh:        0.55,
@@ -262,7 +262,7 @@ func windThreshold(t NodeType, intensity float64) float64 {
 		NodeFireStation:      0.95,
 		NodeEOC:              0.97,
 	}
-	b := base[t]
+	b := base[nodeType]
 	if b == 0 {
 		b = 0.9
 	}

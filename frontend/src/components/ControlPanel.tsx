@@ -1,33 +1,46 @@
 import { useMemo, useState } from 'react'
 import {
-  AlertOctagon,
   Ban,
   ChevronDown,
+  Layers,
   Pause,
   Play,
   RotateCcw,
   SkipForward,
-  Skull,
   Wrench,
   Zap,
 } from 'lucide-react'
 import { useSimStore, send } from '../store/useSimStore'
-import type { NodeType, Preset } from '../types/simulation'
+import { PRESET_TONE } from '../lib/theme'
+import type { NodeType } from '../types/simulation'
+import { Button, SectionTitle } from './ui'
 
 const TARGETS: { label: string; type: NodeType; ids: string[] }[] = [
-  { label: 'Substations', type: 'POWER_SUBSTATION', ids: ['substation-01', 'substation-02', 'substation-03', 'substation-04'] },
-  { label: 'Comms Sites', type: 'CELL_TOWER', ids: ['tower-01', 'tower-02', 'tower-03', 'tower-04', 'tower-05', 'tower-06'] },
-  { label: 'Intersections', type: 'ROAD_INTERSECTION', ids: ['intersection-01', 'intersection-02', 'intersection-03', 'intersection-04', 'intersection-05', 'intersection-06'] },
+  {
+    label: 'Substations',
+    type: 'POWER_SUBSTATION',
+    ids: ['substation-01', 'substation-02', 'substation-03', 'substation-04'],
+  },
+  {
+    label: 'Comms sites',
+    type: 'CELL_TOWER',
+    ids: ['tower-01', 'tower-02', 'tower-03', 'tower-04', 'tower-05', 'tower-06'],
+  },
+  {
+    label: 'Intersections',
+    type: 'ROAD_INTERSECTION',
+    ids: [
+      'intersection-01',
+      'intersection-02',
+      'intersection-03',
+      'intersection-04',
+      'intersection-05',
+      'intersection-06',
+    ],
+  },
 ]
 
 const ROAD_TARGETS = ['road-17', 'road-05', 'road-06', 'road-07', 'road-03']
-
-const SEVERITY_TONE: Record<string, string> = {
-  CATASTROPHIC: 'border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/20',
-  CRITICAL: 'border-orange-500/50 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20',
-  HIGH: 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20',
-  MEDIUM: 'border-slate-500/50 bg-slate-700/40 text-slate-200 hover:bg-slate-700/70',
-}
 
 export default function ControlPanel() {
   const state = useSimStore((s) => s.state)
@@ -35,19 +48,28 @@ export default function ControlPanel() {
   const presets = useSimStore((s) => s.presets)
   const setError = useSimStore((s) => s.setError)
   const selectNode = useSimStore((s) => s.selectNode)
-  const [busy, setBusy] = useState<string | null>(null)
   const [openGroup, setOpenGroup] = useState<string | null>('Substations')
+  const [selected, setSelected] = useState<string[]>([])
+  const [applying, setApplying] = useState(false)
 
-  const offline = useMemo(() => {
-    if (!state) return []
-    return Object.values(state.nodes).filter((n) => !n.operational)
-  }, [state])
+  const offline = useMemo(
+    () => (state ? Object.values(state.nodes).filter((n) => !n.operational) : []),
+    [state],
+  )
 
-  function applyPreset(p: Preset) {
-    setBusy(p.id)
+  function togglePreset(id: string) {
+    setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+  }
+
+  function applyStacked() {
+    if (selected.length === 0) return
+    setApplying(true)
     setError(null)
-    send('APPLY_PRESET', { presetId: p.id })
-    window.setTimeout(() => setBusy((cur) => (cur === p.id ? null : cur)), 350)
+    send('APPLY_PRESETS', { presetIds: selected })
+    window.setTimeout(() => {
+      setApplying(false)
+      setSelected([])
+    }, 500)
   }
 
   function inject(targetId: string) {
@@ -69,82 +91,149 @@ export default function ControlPanel() {
   const running = runState === 'RUNNING'
 
   return (
-    <section className="flex flex-col gap-3 border-b border-ares-border bg-ares-panel/60 p-3">
-      <header className="flex items-center justify-between">
-        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Command Console
-        </h2>
-        <span className="font-mono text-[10px] text-slate-600">
-          {presets.length} presets loaded
-        </span>
-      </header>
+    <section className="flex flex-col gap-4 bg-transparent p-3">
+      <SectionTitle
+        action={
+          <span className="text-xs text-neutral-500">
+            {presets.length} preset{presets.length === 1 ? '' : 's'}
+          </span>
+        }
+      >
+        Command console
+      </SectionTitle>
 
       <div className="flex items-center gap-1.5">
-        <button
+        <Button
+          variant={running ? 'warn' : 'primary'}
+          className="flex-1"
           onClick={() => send(running ? 'PAUSE' : 'START')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 font-mono text-xs font-semibold uppercase tracking-wider transition ${
-            running
-              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-              : 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-          }`}
+          icon={
+            running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />
+          }
         >
-          {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           {running ? 'Pause' : 'Start'}
-        </button>
-        <button
+        </Button>
+        <Button
+          size="sm"
+          className="px-2.5 py-2"
+          title="Advance one tick"
           onClick={() => send('STEP', { steps: 1 })}
-          className="flex items-center justify-center gap-2 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-cyan-300 transition hover:bg-cyan-500/20"
+          icon={<SkipForward className="h-3.5 w-3.5" />}
         >
-          <SkipForward className="h-3.5 w-3.5" />1
-        </button>
-        <button
+          1
+        </Button>
+        <Button
+          size="sm"
+          className="px-2.5 py-2"
+          title="Advance five ticks"
           onClick={() => send('STEP', { steps: 5 })}
-          className="flex items-center justify-center gap-2 rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 font-mono text-xs uppercase tracking-wider text-cyan-300 transition hover:bg-cyan-500/20"
         >
           +5
-        </button>
+        </Button>
       </div>
 
       <div>
-        <h3 className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-          <Zap className="h-3 w-3 text-orange-400" />
-          Hazard Presets
-        </h3>
-        <div className="grid grid-cols-1 gap-1.5">
-          {presets.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => applyPreset(p)}
-              disabled={busy === p.id}
-              title={p.description}
-              className={`rounded-md border px-2.5 py-2 text-left font-mono text-[11px] uppercase tracking-wider transition disabled:opacity-50 ${
-                SEVERITY_TONE[p.severity] ?? SEVERITY_TONE.MEDIUM
-              }`}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <SectionTitle icon={<Zap className="h-3.5 w-3.5 text-neutral-500" />}>
+            Stacked events
+          </SectionTitle>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="subtle"
+              onClick={() =>
+                setSelected(selected.length === presets.length ? [] : presets.map((p) => p.id))
+              }
             >
-              <span className="flex items-center gap-1.5 font-semibold">
-                <AlertOctagon className="h-3 w-3 shrink-0" />
-                {busy === p.id ? 'Applying…' : p.label}
-              </span>
-            </button>
-          ))}
+              {selected.length === presets.length && presets.length > 0 ? 'None' : 'All'}
+            </Button>
+            <Button
+              size="sm"
+              variant="subtle"
+              onClick={() => setSelected([])}
+              disabled={selected.length === 0}
+            >
+              Clear
+            </Button>
+          </div>
         </div>
+
+        <div className="flex flex-col gap-1">
+          {presets.map((p) => {
+            const on = selected.includes(p.id)
+            return (
+              <button
+                key={p.id}
+                onClick={() => togglePreset(p.id)}
+                title={p.description}
+                aria-pressed={on}
+                className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-left transition ${
+                  on
+                    ? 'border-neutral-500 bg-neutral-800 text-neutral-50'
+                    : 'border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-600 hover:text-neutral-100'
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border ${
+                    on ? 'border-neutral-100 bg-neutral-100' : 'border-neutral-700 bg-neutral-950'
+                  }`}
+                >
+                  {on && <span className="h-1.5 w-1.5 rounded-[1px] bg-neutral-900" />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium leading-tight">{p.label}</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-neutral-500">
+                    {p.description}
+                  </span>
+                </span>
+                <span
+                  className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs ${
+                    PRESET_TONE[p.severity] ?? PRESET_TONE.MEDIUM
+                  }`}
+                >
+                  {p.severity.slice(0, 4)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <Button
+          variant="warn"
+          className="mt-2 w-full"
+          onClick={applyStacked}
+          disabled={selected.length === 0 || applying}
+          icon={<Layers className="h-3.5 w-3.5" />}
+        >
+          {applying
+            ? 'Stacking…'
+            : selected.length === 0
+              ? 'Select events to stack'
+              : `Stack ${selected.length} event${selected.length === 1 ? '' : 's'}`}
+        </Button>
+        <p className="mt-1.5 text-xs leading-snug text-neutral-500">
+          Selected events apply in order and compound: each one re-evaluates the cascade on top of
+          the last.
+        </p>
       </div>
 
       <div>
-        <h3 className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-          <Skull className="h-3 w-3 text-red-400" />
-          Manual Failure Injection
-        </h3>
+        <SectionTitle className="mb-2" icon={<Ban className="h-3.5 w-3.5 text-red-400" />}>
+          Manual failure injection
+        </SectionTitle>
         <div className="flex flex-col gap-1">
           {TARGETS.map((g) => (
-            <div key={g.type} className="overflow-hidden rounded-md border border-slate-700/60">
+            <div key={g.type} className="overflow-hidden rounded-md border border-neutral-800">
               <button
                 onClick={() => setOpenGroup(openGroup === g.label ? null : g.label)}
-                className="flex w-full items-center justify-between bg-slate-800/40 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-300 hover:bg-slate-800/70"
+                className="flex w-full items-center justify-between bg-neutral-900/60 px-2.5 py-1.5 text-sm text-neutral-200 transition hover:bg-neutral-800"
               >
                 {g.label}
                 <ChevronDown
-                  className={`h-3 w-3 transition-transform ${openGroup === g.label ? 'rotate-180' : ''}`}
+                  className={`h-3.5 w-3.5 text-neutral-500 transition-transform ${
+                    openGroup === g.label ? 'rotate-180' : ''
+                  }`}
                 />
               </button>
               {openGroup === g.label && (
@@ -153,18 +242,21 @@ export default function ControlPanel() {
                     const n = state?.nodes[id]
                     const down = n ? !n.operational : false
                     return (
-                      <button
+                      <Button
                         key={id}
+                        size="sm"
+                        variant={down ? 'primary' : 'ghost'}
                         onClick={() => (down ? restore(id) : inject(id))}
-                        className={`rounded border px-1.5 py-1.5 font-mono text-[10px] transition ${
-                          down
-                            ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-                            : 'border-slate-600/50 bg-slate-800/30 text-slate-400 hover:border-red-500/50 hover:text-red-300'
-                        }`}
+                        icon={
+                          down ? (
+                            <Wrench className="h-3 w-3" />
+                          ) : (
+                            <Ban className="h-3 w-3" />
+                          )
+                        }
                       >
-                        {down ? <Wrench className="mr-1 inline h-2.5 w-2.5" /> : <Ban className="mr-1 inline h-2.5 w-2.5" />}
                         {id.split('-').slice(-1)[0]}
-                      </button>
+                      </Button>
                     )
                   })}
                 </div>
@@ -175,27 +267,24 @@ export default function ControlPanel() {
       </div>
 
       <div>
-        <h3 className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
-          <Ban className="h-3 w-3 text-amber-400" />
-          Flood Road Segment
-        </h3>
+        <SectionTitle className="mb-2" icon={<Ban className="h-3.5 w-3.5 text-neutral-500" />}>
+          Flood road segment
+        </SectionTitle>
         <div className="flex flex-wrap gap-1">
           {ROAD_TARGETS.map((id) => {
             const c = state?.connections[id]
             const blocked = c?.blocked ?? false
             return (
-              <button
+              <Button
                 key={id}
+                size="sm"
+                variant={blocked ? 'danger' : 'ghost'}
                 onClick={() => block(id)}
                 disabled={blocked}
-                className={`rounded border px-2 py-1 font-mono text-[10px] transition ${
-                  blocked
-                    ? 'border-red-500/40 bg-red-500/10 text-red-300'
-                    : 'border-slate-600/50 bg-slate-800/30 text-slate-400 hover:border-amber-500/50 hover:text-amber-300'
-                }`}
+                className="font-mono"
               >
                 {id}
-              </button>
+              </Button>
             )
           })}
         </div>
@@ -203,19 +292,18 @@ export default function ControlPanel() {
 
       {offline.length > 0 && (
         <div className="rounded-md border border-red-500/30 bg-red-500/5 p-2">
-          <h3 className="mb-1 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.15em] text-red-300">
-            <RotateCcw className="h-3 w-3" />
-            Offline Assets ({offline.length})
-          </h3>
-          <div className="flex max-h-24 flex-col gap-0.5 overflow-y-auto">
+          <SectionTitle className="mb-1.5" icon={<RotateCcw className="h-3.5 w-3.5" />}>
+            <span className="text-red-200">Offline assets ({offline.length})</span>
+          </SectionTitle>
+          <div className="flex max-h-28 flex-col gap-0.5 overflow-y-auto">
             {offline.slice(0, 12).map((n) => (
               <button
                 key={n.id}
                 onClick={() => restore(n.id)}
-                className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-left font-mono text-[10px] text-slate-400 transition hover:bg-emerald-500/10 hover:text-emerald-300"
+                className="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-left text-xs text-neutral-400 transition hover:bg-emerald-500/10 hover:text-emerald-200"
               >
                 <span className="truncate">{n.name}</span>
-                <span className="shrink-0 text-slate-600">{n.reason || n.status}</span>
+                <span className="shrink-0 font-mono text-neutral-600">{n.reason || n.status}</span>
               </button>
             ))}
           </div>

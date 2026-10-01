@@ -32,12 +32,13 @@ type InboundMessage struct {
 }
 
 type ActionPayload struct {
-	TargetID     string `json:"targetId"`
-	TargetType   string `json:"targetType"`
-	ConnectionID string `json:"connectionId"`
-	Steps        int    `json:"steps"`
-	PresetID     string `json:"presetId"`
-	RequestID    string `json:"requestId"`
+	TargetID     string   `json:"targetId"`
+	TargetType   string   `json:"targetType"`
+	ConnectionID string   `json:"connectionId"`
+	Steps        int      `json:"steps"`
+	PresetID     string   `json:"presetId"`
+	PresetIDs    []string `json:"presetIds"`
+	RequestID    string   `json:"requestId"`
 }
 
 type OutboundMessage struct {
@@ -212,6 +213,15 @@ func (c *client) dispatch(srv *Server, action string, pl ActionPayload) {
 		}
 	case "APPLY_PRESET":
 		if err := e.ApplyPreset(pl.PresetID); err != nil {
+			c.hub.broadcastCtrl("ERROR", pl.RequestID, err.Error())
+			return
+		}
+	case "APPLY_PRESETS":
+		ids := pl.PresetIDs
+		if len(ids) == 0 && pl.PresetID != "" {
+			ids = []string{pl.PresetID}
+		}
+		if err := e.ApplyPresets(ids); err != nil {
 			c.hub.broadcastCtrl("ERROR", pl.RequestID, err.Error())
 			return
 		}

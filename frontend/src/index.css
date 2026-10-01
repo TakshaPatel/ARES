@@ -11,8 +11,8 @@
 
   body {
     margin: 0;
-    background: #070a0f;
-    color: #e2e8f0;
+    background: #0a0a0b;
+    color: #e9eaec;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -22,16 +22,16 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0d131b;
+    background: #16171a;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #1e2936;
+    background: #2b2d31;
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #43464b;
   }
 }
 
@@ -42,8 +42,8 @@
 }
 
 .maplibregl-ctrl-group {
-  background: #0d131b !important;
-  border: 1px solid #1e2936 !important;
+  background: #16171a !important;
+  border: 1px solid #2b2d31 !important;
 }
 
 .maplibregl-ctrl-group button {
@@ -51,7 +51,7 @@
 }
 
 .maplibregl-ctrl-group button + button {
-  border-top: 1px solid #1e2936 !important;
+  border-top: 1px solid #2b2d31 !important;
 }
 
 .maplibregl-ctrl-group button span {
@@ -59,13 +59,13 @@
 }
 
 .maplibregl-ctrl-attrib {
-  background: rgba(13, 19, 27, 0.8) !important;
-  color: #475569 !important;
+  background: rgba(22, 23, 26, 0.8) !important;
+  color: #8b8d91 !important;
   font-size: 9px !important;
 }
 
 .maplibregl-ctrl-attrib a {
-  color: #64748b !important;
+  color: #a3a5a9 !important;
 }
 
 .react-flow__attribution {
@@ -73,15 +73,15 @@
 }
 
 .react-flow__controls-button {
-  background: #0d131b !important;
-  border-bottom: 1px solid #1e2936 !important;
-  fill: #94a3b8 !important;
+  background: #1d1e21 !important;
+  border-bottom: 1px solid #2b2d31 !important;
+  fill: #a3a5a9 !important;
 }
 
 .react-flow__controls-button:hover {
-  background: #16202b !important;
+  background: #2b2d31 !important;
 }
 
 .react-flow__minimap {
-  background: #0d131b !important;
+  background: #16171a !important;
 }

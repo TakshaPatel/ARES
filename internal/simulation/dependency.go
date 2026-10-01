@@ -23,10 +23,10 @@ func NewDependencyGraph(nodes map[string]*InfrastructureNode) *DependencyGraph {
 		g.Dependents[id] = []string{}
 		g.Prerequisites[id] = []string{}
 	}
-	for id, n := range nodes {
-		seen := make(map[string]bool, len(n.Dependencies))
-		prereqs := make([]string, 0, len(n.Dependencies))
-		for _, dep := range n.Dependencies {
+	for id, node := range nodes {
+		seen := make(map[string]bool, len(node.Dependencies))
+		prereqs := make([]string, 0, len(node.Dependencies))
+		for _, dep := range node.Dependencies {
 			if dep == id || seen[dep] {
 				continue
 			}
@@ -42,15 +42,15 @@ func NewDependencyGraph(nodes map[string]*InfrastructureNode) *DependencyGraph {
 	g.computeCriticality()
 	return g
 }
-func (g *DependencyGraph) topologicalOrder() (order []string, cyclic []string) {
-	indeg := make(map[string]int, len(g.Prerequisites))
-	for id, prereqs := range g.Prerequisites {
+func (graph *DependencyGraph) topologicalOrder() (order []string, cyclic []string) {
+	indeg := make(map[string]int, len(graph.Prerequisites))
+	for id, prereqs := range graph.Prerequisites {
 		indeg[id] = len(prereqs)
 	}
 	ready := make([]string, 0, len(indeg))
-	for id, d := range indeg {
-		if d == 0 {
-			ready = append(ready, id)
+	for nodeId, inDegree := range indeg {
+		if inDegree == 0 {
+			ready = append(ready, nodeId)
 		}
 	}
 	sort.Strings(ready)
@@ -58,7 +58,7 @@ func (g *DependencyGraph) topologicalOrder() (order []string, cyclic []string) {
 		id := ready[0]
 		ready = ready[1:]
 		order = append(order, id)
-		deps := append([]string(nil), g.Dependents[id]...)
+		deps := append([]string(nil), graph.Dependents[id]...)
 		sort.Strings(deps)
 		for _, dep := range deps {
 			indeg[dep]--
@@ -69,23 +69,23 @@ func (g *DependencyGraph) topologicalOrder() (order []string, cyclic []string) {
 		sort.Strings(ready)
 	}
 	remaining := make([]string, 0)
-	for id, d := range indeg {
-		if d > 0 {
-			remaining = append(remaining, id)
+	for nodeId, inDegree := range indeg {
+		if inDegree > 0 {
+			remaining = append(remaining, nodeId)
 		}
 	}
 	sort.Strings(remaining)
 	return order, remaining
 }
-func (g *DependencyGraph) computeCriticality() {
-	ids := make([]string, 0, len(g.Prerequisites))
-	for id := range g.Prerequisites {
+func (graph *DependencyGraph) computeCriticality() {
+	ids := make([]string, 0, len(graph.Prerequisites))
+	for id := range graph.Prerequisites {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
 	for _, root := range ids {
 		visited := make(map[string]bool, len(ids))
-		queue := append([]string(nil), g.Dependents[root]...)
+		queue := append([]string(nil), graph.Dependents[root]...)
 		for len(queue) > 0 {
 			cur := queue[0]
 			queue = queue[1:]
@@ -93,12 +93,12 @@ func (g *DependencyGraph) computeCriticality() {
 				continue
 			}
 			visited[cur] = true
-			queue = append(queue, g.Dependents[cur]...)
+			queue = append(queue, graph.Dependents[cur]...)
 		}
-		g.Criticality[root] = len(visited)
+		graph.Criticality[root] = len(visited)
 	}
 }
-func (g *DependencyGraph) Reachable(from, to string) bool {
+func (graph *DependencyGraph) Reachable(from, to string) bool {
 	visited := map[string]bool{}
 	queue := []string{from}
 	for len(queue) > 0 {
@@ -111,7 +111,7 @@ func (g *DependencyGraph) Reachable(from, to string) bool {
 			continue
 		}
 		visited[cur] = true
-		queue = append(queue, g.Dependents[cur]...)
+		queue = append(queue, graph.Dependents[cur]...)
 	}
 	return false
 }
@@ -133,20 +133,20 @@ type dependencyVerdict struct {
 
 func classify(nodes map[string]*InfrastructureNode, prereqs []string) (essential, redundant []string) {
 	var power, traffic, comms, other []string
-	for _, p := range prereqs {
-		node, ok := nodes[p]
+	for _, prereqId := range prereqs {
+		node, ok := nodes[prereqId]
 		if !ok {
 			continue
 		}
 		switch node.Type {
 		case NodeCellTower, NodeRadioMesh:
-			comms = append(comms, p)
+			comms = append(comms, prereqId)
 		case NodeRoadIntersection:
-			traffic = append(traffic, p)
+			traffic = append(traffic, prereqId)
 		case NodePowerSubstation:
-			power = append(power, p)
+			power = append(power, prereqId)
 		default:
-			other = append(other, p)
+			other = append(other, prereqId)
 		}
 	}
 	essential = append(essential, power...)
@@ -167,7 +167,7 @@ func classify(nodes map[string]*InfrastructureNode, prereqs []string) (essential
 	}
 	return
 }
-func (g *DependencyGraph) EvaluateDependencies(
+func (graph *DependencyGraph) EvaluateDependencies(
 	nodes map[string]*InfrastructureNode,
 	connections map[string]*Connection,
 	floodZone map[string]bool,
@@ -190,12 +190,12 @@ func (g *DependencyGraph) EvaluateDependencies(
 		}
 		return n.CascadeDep
 	}
-	for _, id := range g.Order {
+	for _, id := range graph.Order {
 		node := nodes[id]
 		if node == nil {
 			continue
 		}
-		essential, redundant := classify(nodes, g.Prerequisites[id])
+		essential, redundant := classify(nodes, graph.Prerequisites[id])
 		v := dependencyVerdict{ID: id, Satisfied: true}
 		var causeDepth int
 		record := func(reason string, cause string) {
@@ -206,15 +206,15 @@ func (g *DependencyGraph) EvaluateDependencies(
 				causeDepth = d
 			}
 		}
-		for _, p := range essential {
-			if !up(p) {
-				record(reasonFor(nodes[p].Type), p)
+		for _, prereqId := range essential {
+			if !up(prereqId) {
+				record(reasonFor(nodes[prereqId].Type), prereqId)
 			}
 		}
 		if v.Satisfied && len(redundant) > 0 {
 			anyUp := false
-			for _, p := range redundant {
-				if up(p) {
+			for _, prereqId := range redundant {
+				if up(prereqId) {
 					anyUp = true
 					break
 				}
@@ -240,28 +240,28 @@ func (g *DependencyGraph) EvaluateDependencies(
 		}
 		verdicts = append(verdicts, v)
 	}
-	for pass := 0; pass < len(g.Cyclic); pass++ {
+	for pass := 0; pass < len(graph.Cyclic); pass++ {
 		progressed := false
-		for _, id := range g.Cyclic {
+		for _, id := range graph.Cyclic {
 			node := nodes[id]
 			if node == nil || !node.Operational {
 				continue
 			}
-			essential, redundant := classify(nodes, g.Prerequisites[id])
+			essential, redundant := classify(nodes, graph.Prerequisites[id])
 			down := false
 			var causeDepth int
-			for _, p := range essential {
-				if !up(p) {
+			for _, prereqId := range essential {
+				if !up(prereqId) {
 					down = true
-					if d := depthOf(p) + 1; d > causeDepth {
+					if d := depthOf(prereqId) + 1; d > causeDepth {
 						causeDepth = d
 					}
 				}
 			}
 			if !down && len(redundant) > 0 {
 				anyUp := false
-				for _, p := range redundant {
-					if up(p) {
+				for _, prereqId := range redundant {
+					if up(prereqId) {
 						anyUp = true
 						break
 					}
@@ -288,12 +288,12 @@ func (g *DependencyGraph) EvaluateDependencies(
 			break
 		}
 	}
-	for _, f := range failures {
-		node := nodes[f.ID]
+	for _, failure := range failures {
+		node := nodes[failure.ID]
 		if node == nil || node.Type != NodeRoadIntersection {
 			continue
 		}
-		for _, eID := range controlledSegments(connections, f.ID) {
+		for _, eID := range controlledSegments(connections, failure.ID) {
 			conn, ok := connections[eID]
 			if !ok || conn.Blocked {
 				continue
@@ -311,8 +311,8 @@ func (g *DependencyGraph) EvaluateDependencies(
 	_ = verdicts
 	return failures
 }
-func reasonFor(t NodeType) string {
-	switch t {
+func reasonFor(nodeType NodeType) string {
+	switch nodeType {
 	case NodePowerSubstation:
 		return "POWER_LOSS"
 	case NodeCellTower:
@@ -346,11 +346,11 @@ func worstRedundantCause(nodes map[string]*InfrastructureNode, ids []string) (re
 }
 func controlledSegments(connections map[string]*Connection, intersectionID string) []string {
 	out := make([]string, 0, 4)
-	for id, c := range connections {
-		if c.Type != EdgeRoad {
+	for id, conn := range connections {
+		if conn.Type != EdgeRoad {
 			continue
 		}
-		owner, _ := c.Metadata["controlled_by"].(string)
+		owner, _ := conn.Metadata["controlled_by"].(string)
 		if owner == intersectionID {
 			out = append(out, id)
 		}
@@ -361,32 +361,32 @@ func controlledSegments(connections map[string]*Connection, intersectionID strin
 func DependencyEdgeList(nodes map[string]*InfrastructureNode, conns map[string]*Connection) []DependencyEdge {
 	out := make([]DependencyEdge, 0, len(conns))
 	for id := range nodes {
-		for _, dep := range nodes[id].Dependencies {
-			if _, ok := nodes[dep]; !ok {
+		for _, node := range nodes[id].Dependencies {
+			if _, ok := nodes[node]; !ok {
 				continue
 			}
 			out = append(out, DependencyEdge{
-				ID:     "dep:" + dep + "->" + id,
-				Source: dep,
+				ID:     "dep:" + node + "->" + id,
+				Source: node,
 				Target: id,
 				Kind:   "DEPENDENCY",
-				Active: nodes[dep].Operational && nodes[id].Operational,
+				Active: nodes[node].Operational && nodes[id].Operational,
 			})
 		}
 	}
-	for id, c := range conns {
-		if _, ok := nodes[c.From]; !ok {
+	for id, conn := range conns {
+		if _, ok := nodes[conn.From]; !ok {
 			continue
 		}
-		if _, ok := nodes[c.To]; !ok {
+		if _, ok := nodes[conn.To]; !ok {
 			continue
 		}
-		active := c.Active && !c.Blocked && nodes[c.From].Operational && nodes[c.To].Operational
+		active := conn.Active && !conn.Blocked && nodes[conn.From].Operational && nodes[conn.To].Operational
 		out = append(out, DependencyEdge{
 			ID:     "conn:" + id,
-			Source: c.From,
-			Target: c.To,
-			Kind:   string(c.Type),
+			Source: conn.From,
+			Target: conn.To,
+			Kind:   string(conn.Type),
 			Active: active,
 		})
 	}

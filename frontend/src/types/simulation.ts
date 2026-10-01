@@ -142,6 +142,15 @@ export interface ScenarioSummary {
 
 export type RunState = 'RUNNING' | 'PAUSED' | 'CONNECTING' | 'OFFLINE'
 
+export type TabKey = 'map' | 'graph' | 'reports' | 'upload'
+
+export interface CityView {
+  center: [number, number] | null
+  zoom: number | null
+  label: string | null
+  source: string | null
+}
+
 export interface MetricSample {
   tick: number
   clock: string
@@ -163,6 +172,7 @@ export type InboundAction =
   | 'INJECT_ROAD_BLOCK'
   | 'RESTORE_NODE'
   | 'APPLY_PRESET'
+  | 'APPLY_PRESETS'
   | 'RESET'
 
 export interface NodeGlyph {

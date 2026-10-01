@@ -1,7 +1,7 @@
 {
-  "id": "hurricane-coastal-metro",
-  "name": "Coastal Metro Hurricane Strike",
-  "description": "Category-4 landfall on Cape Meridian. 12 emergency facilities, 18 infrastructure nodes and a directed dependency graph spanning the power grid, the RescueNet communications mesh and the road network.",
+  "id": "north-brunswick-hurricane",
+  "name": "North Brunswick Hurricane Landfall",
+  "description": "Major-hurricane wind and rain bands crossing Middlesex County, NJ, centred on the Township of North Brunswick. 30 nodes covering the PSE&G assets feeding the township (the Brunswick 230kV switching station on Victory Avenue and the 69kV sub-transmission tier at 14th Street, Adams and Bennetts Lane), four real receiving facilities in New Brunswick and Piscataway, the Township's three volunteer fire companies plus its separate First Aid & Rescue Squad, and three adjacent volunteer departments. The Township Municipal Building on Hermann Road acts as the township-level emergency operations centre; the county's Emergency Services Center is in Sayreville, outside the township. North Brunswick Township and the City of New Brunswick are adjacent but separate municipalities with their own fire, EMS and OEM, so the hospitals here are City of New Brunswick facilities reached by mutual aid. Substation names, street addresses and coordinates come from the Township of North Brunswick directory, RWJBarnabas Health, NJDEP permit NJG0306801, PSE&G/PJM planning filings and OpenStreetMap; tower and mesh-relay sites are modelled on real corridors, and the coverage they provide is modelled, not measured.",
   "hazardModel": "MAJOR_HURRICANE",
   "tickMinutes": 5,
   "startHour": 6,
@@ -9,297 +9,338 @@
   "nodes": [
     {
       "id": "substation-01",
-      "name": "Bayfront Substation",
+      "name": "PSE&G Brunswick Substation",
       "type": "POWER_SUBSTATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.945,
-      "lng": -82.475,
+      "lat": 40.4463,
+      "lng": -74.46102,
       "dependencies": [],
       "metadata": {
         "exposure": 0.35,
         "priority": "CRITICAL",
         "feeders": 9,
-        "crew": "LINE_CREW_ALPHA"
+        "crew": "LINE_CREW_ALPHA",
+        "address": "Victory Avenue, North Brunswick, NJ 08902",
+        "operator": "PSE&G",
+        "data_source": "OSM ways; CRTNJ Brunswick Switchyard project sheet"
       }
     },
     {
       "id": "substation-02",
-      "name": "Harbor Substation",
+      "name": "PSE&G North Brunswick 69kV Substation (14th Street)",
       "type": "POWER_SUBSTATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.88,
-      "lng": -82.505,
+      "lat": 40.47224,
+      "lng": -74.47125,
       "dependencies": [],
       "metadata": {
         "exposure": 0.9,
         "priority": "CRITICAL",
         "feeders": 6,
-        "crew": "LINE_CREW_BRAVO"
+        "crew": "LINE_CREW_BRAVO",
+        "address": "14th Street, North Brunswick, NJ 08902",
+        "operator": "PSE&G",
+        "data_source": "Milhouse Engineering: North Brunswick Area 69kV Substation (14th St)"
       }
     },
     {
       "id": "substation-03",
-      "name": "Cedar Park Substation",
+      "name": "PSE&G Adams Substation",
       "type": "POWER_SUBSTATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.985,
-      "lng": -82.395,
+      "lat": 40.4583,
+      "lng": -74.48014,
       "dependencies": [],
       "metadata": {
         "exposure": 0.18,
         "priority": "HIGH",
         "feeders": 5,
-        "crew": "LINE_CREW_CHARLIE"
+        "crew": "LINE_CREW_CHARLIE",
+        "address": "Station Avenue, North Brunswick, NJ 08902",
+        "operator": "PSE&G",
+        "data_source": "OSM; PJM load-transfer study"
       }
     },
     {
       "id": "substation-04",
-      "name": "Southpoint Substation",
+      "name": "PSE&G Bennetts Lane Substation",
       "type": "POWER_SUBSTATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.81,
-      "lng": -82.44,
+      "lat": 40.48546,
+      "lng": -74.53011,
       "dependencies": [],
       "metadata": {
         "exposure": 0.52,
         "priority": "HIGH",
         "feeders": 7,
-        "crew": "LINE_CREW_ALPHA"
+        "crew": "LINE_CREW_ALPHA",
+        "address": "Bennetts Lane, New Brunswick, NJ 08901",
+        "operator": "PSE&G",
+        "data_source": "OSM; PJM load-transfer study"
       }
     },
     {
       "id": "tower-01",
-      "name": "North Ridge Tower",
+      "name": "Five Corners Tower (Dayton / South Brunswick)",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.998,
-      "lng": -82.45,
+      "lat": 40.4406,
+      "lng": -74.5461,
       "dependencies": [
         "substation-03"
       ],
       "metadata": {
         "exposure": 0.25,
-        "band": "LTE"
+        "band": "LTE",
+        "address": "Ridge Rd / Georges Rd / Route 27, Dayton (South Brunswick Twp), NJ 08854",
+        "data_source": "Real junction in South Brunswick Twp (~3 mi from North Brunswick), the documented power-loss hotspot in both Sandy (2012) and Ida (2021). Cross-municipal feed is intentional and realistic; the radio site and its coverage are modelled."
       }
     },
     {
       "id": "tower-02",
-      "name": "Marina Tower",
+      "name": "North Brunswick Transit Center Tower",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.932,
-      "lng": -82.505,
+      "lat": 40.46615,
+      "lng": -74.45116,
       "dependencies": [
         "substation-02"
       ],
       "metadata": {
         "exposure": 0.62,
-        "band": "LTE"
+        "band": "LTE",
+        "address": "Milltown Road, North Brunswick, NJ 08902",
+        "data_source": "Site located at the NB Transit Center; coverage modelled"
       }
     },
     {
       "id": "tower-03",
-      "name": "Old Town Tower",
+      "name": "Jersey Avenue Tower (Route 91)",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.905,
-      "lng": -82.45,
+      "lat": 40.49,
+      "lng": -74.443,
       "dependencies": [
         "substation-01"
       ],
       "metadata": {
         "exposure": 0.44,
-        "band": "LTE"
+        "band": "LTE",
+        "address": "Jersey Avenue (County Route 91), North Brunswick, NJ 08902",
+        "data_source": "Jersey Avenue is Route 91 in North Brunswick Twp. The radio site and its coverage are modelled."
       }
     },
     {
       "id": "tower-04",
-      "name": "South Point Tower",
+      "name": "Kendall Park Tower (South Brunswick)",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.845,
-      "lng": -82.47,
+      "lat": 40.41389,
+      "lng": -74.56598,
       "dependencies": [
         "substation-01"
       ],
       "metadata": {
         "exposure": 0.78,
-        "band": "5G"
+        "band": "5G",
+        "address": "Kendall Park, South Brunswick, NJ 08824",
+        "data_source": "Site located in Kendall Park; coverage modelled"
       }
     },
     {
       "id": "mesh-01",
-      "name": "Harbor Mesh Relay",
+      "name": "Milltown Mesh Relay",
       "type": "RADIO_MESH",
       "operational": true,
       "health": 100.0,
-      "lat": 27.872,
-      "lng": -82.575,
+      "lat": 40.45319,
+      "lng": -74.43514,
       "dependencies": [
         "substation-02"
       ],
       "metadata": {
         "exposure": 0.7,
         "band": "MESH",
-        "bandwidth_kbps": 96
+        "bandwidth_kbps": 96,
+        "address": "Milltown, Middlesex County, NJ 08850",
+        "operator": "Milltown Electric Utility",
+        "data_source": "OSM substation location; relay placement modelled"
       }
     },
     {
       "id": "tower-05",
-      "name": "Beach Park Tower",
+      "name": "Highland Park Tower",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.775,
-      "lng": -82.505,
+      "lat": 40.49702,
+      "lng": -74.42262,
       "dependencies": [
         "substation-04"
       ],
       "metadata": {
         "exposure": 0.95,
-        "band": "LTE"
+        "band": "LTE",
+        "address": "Highland Park, NJ 08904",
+        "data_source": "Site located in Highland Park; coverage modelled"
       }
     },
     {
       "id": "mesh-02",
-      "name": "Cedar Mesh Relay",
+      "name": "East Brunswick Mesh Relay",
       "type": "RADIO_MESH",
       "operational": true,
       "health": 100.0,
-      "lat": 27.96,
-      "lng": -82.385,
+      "lat": 40.41812,
+      "lng": -74.40988,
       "dependencies": [
         "substation-03"
       ],
       "metadata": {
         "exposure": 0.3,
         "band": "MESH",
-        "bandwidth_kbps": 128
+        "bandwidth_kbps": 128,
+        "address": "310 Rues Lane, East Brunswick, NJ 08816",
+        "data_source": "OSM Civic Center Station location; relay placement modelled"
       }
     },
     {
       "id": "tower-06",
-      "name": "Gulf Gate Tower",
+      "name": "Piscataway / Rutgers Tower",
       "type": "CELL_TOWER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.82,
-      "lng": -82.565,
+      "lat": 40.53957,
+      "lng": -74.46967,
       "dependencies": [
         "substation-04",
         "substation-02"
       ],
       "metadata": {
         "exposure": 0.88,
-        "band": "LTE"
+        "band": "LTE",
+        "address": "Sidney Road, Piscataway, NJ 08854",
+        "data_source": "Site located in Piscataway; coverage modelled"
       }
     },
     {
       "id": "intersection-01",
-      "name": "5th Ave & Main St",
+      "name": "Hermann Road & Ridgewood Avenue",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.945,
-      "lng": -82.47,
+      "lat": 40.4672,
+      "lng": -74.4672,
       "dependencies": [
         "substation-03"
       ],
       "metadata": {
-        "exposure": 0.4
+        "exposure": 0.4,
+        "address": "North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "intersection-02",
-      "name": "Marina Blvd & Bayfront",
+      "name": "US-130 & Station Avenue (Adams)",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.93,
-      "lng": -82.51,
+      "lat": 40.4423,
+      "lng": -74.49901,
       "dependencies": [
         "substation-02"
       ],
       "metadata": {
-        "exposure": 0.66
+        "exposure": 0.66,
+        "address": "Station Avenue, North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "intersection-03",
-      "name": "Southpoint Junction",
+      "name": "Cranbury Cross Road & Hermann Road",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.885,
-      "lng": -82.505,
+      "lat": 40.46678,
+      "lng": -74.46315,
       "dependencies": [
         "substation-01"
       ],
       "metadata": {
-        "exposure": 0.85
+        "exposure": 0.85,
+        "address": "North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "intersection-04",
-      "name": "Cedar Ave & 14th St",
+      "name": "14th Street & Jersey Avenue",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.96,
-      "lng": -82.415,
+      "lat": 40.47396,
+      "lng": -74.4691,
       "dependencies": [
         "substation-03"
       ],
       "metadata": {
-        "exposure": 0.22
+        "exposure": 0.22,
+        "address": "North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "intersection-05",
-      "name": "Harbor Loop & 3rd St",
+      "name": "US-130 & Quarry Lane (Black Horse)",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.905,
-      "lng": -82.545,
+      "lat": 40.42059,
+      "lng": -74.49231,
       "dependencies": [
         "substation-02"
       ],
       "metadata": {
-        "exposure": 0.74
+        "exposure": 0.74,
+        "address": "Quarry Lane, North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "intersection-06",
-      "name": "Gulf Gate Cross",
+      "name": "US-130 & Victory Avenue (Red Lion)",
       "type": "ROAD_INTERSECTION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.822,
-      "lng": -82.52,
+      "lat": 40.44664,
+      "lng": -74.46349,
       "dependencies": [
         "substation-04"
       ],
       "metadata": {
-        "exposure": 0.68
+        "exposure": 0.68,
+        "address": "Victory Avenue, North Brunswick, NJ 08902",
+        "data_source": "Geocoded road junction"
       }
     },
     {
       "id": "eoc-01",
-      "name": "County EOC - Meridian",
+      "name": "North Brunswick Township Municipal Building (EOC)",
       "type": "EMERGENCY_OPS_CENTER",
       "operational": true,
       "health": 100.0,
-      "lat": 27.972,
-      "lng": -82.402,
+      "lat": 40.46676,
+      "lng": -74.45786,
       "dependencies": [
         "substation-03",
         "tower-01",
@@ -309,17 +350,20 @@
         "exposure": 0.15,
         "role": "PRIMARY",
         "staff": 64,
-        "backup_power": true
+        "backup_power": true,
+        "address": "710 Hermann Road, North Brunswick, NJ 08902",
+        "operator": "North Brunswick Township",
+        "data_source": "northbrunswicknj.gov/contact"
       }
     },
     {
       "id": "hospital-01",
-      "name": "St. Angela Regional Hospital",
+      "name": "Robert Wood Johnson University Hospital",
       "type": "HOSPITAL",
       "operational": true,
       "health": 100.0,
-      "lat": 27.975,
-      "lng": -82.425,
+      "lat": 40.4953,
+      "lng": -74.44951,
       "dependencies": [
         "substation-01",
         "tower-01",
@@ -329,17 +373,20 @@
         "exposure": 0.35,
         "role": "PRIMARY",
         "beds": 420,
-        "backup_power": true
+        "backup_power": true,
+        "address": "1 Robert Wood Johnson Place, New Brunswick, NJ 08901",
+        "operator": "RWJBarnabas Health",
+        "data_source": "OSM; rwjbh.org"
       }
     },
     {
       "id": "hospital-02",
-      "name": "Bay View Medical Center",
+      "name": "Saint Peter's University Hospital",
       "type": "HOSPITAL",
       "operational": true,
       "health": 100.0,
-      "lat": 27.812,
-      "lng": -82.512,
+      "lat": 40.50061,
+      "lng": -74.45949,
       "dependencies": [
         "substation-04",
         "tower-05"
@@ -348,17 +395,20 @@
         "exposure": 0.72,
         "role": "PRIMARY",
         "beds": 260,
-        "backup_power": true
+        "backup_power": true,
+        "address": "254 Easton Avenue, New Brunswick, NJ 08901",
+        "operator": "Saint Peter's Healthcare System",
+        "data_source": "OSM"
       }
     },
     {
       "id": "fire-01",
-      "name": "Station 1 - Central",
+      "name": "North Brunswick Volunteer Fire Co. 1",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.952,
-      "lng": -82.482,
+      "lat": 40.46472,
+      "lng": -74.45772,
       "dependencies": [
         "substation-01",
         "tower-01"
@@ -366,17 +416,20 @@
       "metadata": {
         "exposure": 0.38,
         "role": "PRIMARY",
-        "units": 4
+        "units": 4,
+        "address": "600 Cranbury Cross Road, North Brunswick, NJ 08902",
+        "operator": "NBVFD",
+        "data_source": "Geocoded township directory address"
       }
     },
     {
       "id": "fire-02",
-      "name": "Station 4 - Marina",
+      "name": "North Brunswick Volunteer Fire Co. 2",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.928,
-      "lng": -82.523,
+      "lat": 40.43986,
+      "lng": -74.47887,
       "dependencies": [
         "substation-02",
         "tower-02"
@@ -384,17 +437,20 @@
       "metadata": {
         "exposure": 0.7,
         "role": "PRIMARY",
-        "units": 3
+        "units": 3,
+        "address": "2030 US-130, North Brunswick, NJ 08902",
+        "operator": "NBVFD",
+        "data_source": "Geocoded township directory address"
       }
     },
     {
       "id": "fire-03",
-      "name": "Station 7 - Gulf Gate",
+      "name": "North Brunswick Volunteer Fire Co. 3",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.828,
-      "lng": -82.545,
+      "lat": 40.45996,
+      "lng": -74.50488,
       "dependencies": [
         "substation-04",
         "tower-06",
@@ -403,17 +459,20 @@
       "metadata": {
         "exposure": 0.8,
         "role": "PRIMARY",
-        "units": 3
+        "units": 3,
+        "address": "1470 Cozzens Lane, North Brunswick, NJ 08902",
+        "operator": "NBVFD",
+        "data_source": "Geocoded township directory address"
       }
     },
     {
       "id": "hospital-03",
-      "name": "Harbor Community Clinic",
+      "name": "Bristol-Myers Squibb Children's Hospital",
       "type": "HOSPITAL",
       "operational": true,
       "health": 100.0,
-      "lat": 27.903,
-      "lng": -82.548,
+      "lat": 40.49491,
+      "lng": -74.45092,
       "dependencies": [
         "substation-02",
         "mesh-01"
@@ -422,17 +481,20 @@
         "exposure": 0.76,
         "role": "SECONDARY",
         "beds": 40,
-        "tier": "TRIAGE"
+        "tier": "TRIAGE",
+        "address": "200 Somerset Street, New Brunswick, NJ 08901",
+        "operator": "RWJBarnabas Health",
+        "data_source": "OSM"
       }
     },
     {
       "id": "hospital-04",
-      "name": "Gulf Gate Surgical Center",
+      "name": "Rutgers Health - University Behavioral Health Care",
       "type": "HOSPITAL",
       "operational": true,
       "health": 100.0,
-      "lat": 27.8,
-      "lng": -82.5,
+      "lat": 40.52564,
+      "lng": -74.47026,
       "dependencies": [
         "substation-04",
         "tower-05"
@@ -441,17 +503,20 @@
         "exposure": 0.9,
         "role": "SECONDARY",
         "beds": 60,
-        "tier": "FIELD"
+        "tier": "FIELD",
+        "address": "671 Hoes Lane West, Piscataway, NJ 08854",
+        "operator": "Rutgers Health",
+        "data_source": "OSM"
       }
     },
     {
       "id": "fire-04",
-      "name": "Station 2 - Old Town",
+      "name": "North Brunswick First Aid & Rescue Squad",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.9,
-      "lng": -82.455,
+      "lat": 40.46419,
+      "lng": -74.4699,
       "dependencies": [
         "substation-01",
         "tower-03"
@@ -459,17 +524,20 @@
       "metadata": {
         "exposure": 0.5,
         "role": "SECONDARY",
-        "units": 2
+        "units": 2,
+        "address": "880 Ridgewood Avenue, North Brunswick, NJ 08902",
+        "operator": "NB First Aid & Rescue",
+        "data_source": "Geocoded township directory address"
       }
     },
     {
       "id": "fire-05",
-      "name": "Station 5 - Harbor Loop",
+      "name": "Brookview Volunteer Fire House",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.885,
-      "lng": -82.575,
+      "lat": 40.40956,
+      "lng": -74.44799,
       "dependencies": [
         "substation-02",
         "mesh-01",
@@ -478,17 +546,19 @@
       "metadata": {
         "exposure": 0.78,
         "role": "SECONDARY",
-        "units": 2
+        "units": 2,
+        "address": "363 Dunhams Corner Road, East Brunswick, NJ 08816",
+        "data_source": "OSM"
       }
     },
     {
       "id": "fire-06",
-      "name": "Station 6 - Cedar Park",
+      "name": "Raritan Engine Company Number 4",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.968,
-      "lng": -82.42,
+      "lat": 40.48773,
+      "lng": -74.44503,
       "dependencies": [
         "substation-03",
         "mesh-02"
@@ -496,17 +566,19 @@
       "metadata": {
         "exposure": 0.26,
         "role": "SECONDARY",
-        "units": 2
+        "units": 2,
+        "address": "New Brunswick, NJ 08901",
+        "data_source": "OSM"
       }
     },
     {
       "id": "fire-07",
-      "name": "Station 9 - Southpoint",
+      "name": "East Brunswick Independent Fire Co.",
       "type": "FIRE_STATION",
       "operational": true,
       "health": 100.0,
-      "lat": 27.855,
-      "lng": -82.5,
+      "lat": 40.426,
+      "lng": -74.432,
       "dependencies": [
         "substation-02",
         "tower-04"
@@ -514,7 +586,9 @@
       "metadata": {
         "exposure": 0.86,
         "role": "SECONDARY",
-        "units": 2
+        "units": 2,
+        "address": "East Brunswick Township, NJ 08816",
+        "data_source": "East Brunswick Independent Fire Company (Fire District 2). East Brunswick is served by three separately governed fire districts, not one township department."
       }
     }
   ],
@@ -526,13 +600,13 @@
       "type": "POWER_LINE",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 0.49,
+      "distance": 2.38,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.3,
-        "voltage_kv": 138,
-        "distance_km": 0.49
+        "voltage_kv": 230,
+        "distance_km": 2.38
       }
     },
     {
@@ -542,13 +616,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 5.08,
+      "distance": 5.09,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.45,
-        "voltage_kv": 138,
-        "distance_km": 5.08
+        "voltage_kv": 230,
+        "distance_km": 5.09
       }
     },
     {
@@ -558,13 +632,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 11.13,
+      "distance": 9.59,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.8,
-        "voltage_kv": 138,
-        "distance_km": 11.13
+        "voltage_kv": 230,
+        "distance_km": 9.59
       }
     },
     {
@@ -574,13 +648,13 @@
       "type": "POWER_LINE",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 7.29,
+      "distance": 2.28,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.85,
-        "voltage_kv": 138,
-        "distance_km": 7.29
+        "voltage_kv": 230,
+        "distance_km": 2.28
       }
     },
     {
@@ -590,13 +664,13 @@
       "type": "POWER_LINE",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 5.94,
+      "distance": 5.53,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.35,
-        "voltage_kv": 138,
-        "distance_km": 5.94
+        "voltage_kv": 230,
+        "distance_km": 5.53
       }
     },
     {
@@ -606,13 +680,13 @@
       "type": "POWER_LINE",
       "capacity": 40,
       "latency": 0.0,
-      "distance": 1.04,
+      "distance": 2.07,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.38,
-        "voltage_kv": 138,
-        "distance_km": 1.04
+        "voltage_kv": 230,
+        "distance_km": 2.07
       }
     },
     {
@@ -622,13 +696,13 @@
       "type": "POWER_LINE",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 5.58,
+      "distance": 4.07,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.66,
-        "voltage_kv": 138,
-        "distance_km": 5.58
+        "voltage_kv": 69,
+        "distance_km": 4.07
       }
     },
     {
@@ -638,13 +712,13 @@
       "type": "POWER_LINE",
       "capacity": 12,
       "latency": 0.0,
-      "distance": 6.94,
+      "distance": 3.72,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.7,
-        "voltage_kv": 138,
-        "distance_km": 6.94
+        "voltage_kv": 69,
+        "distance_km": 3.72
       }
     },
     {
@@ -654,13 +728,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 8.91,
+      "distance": 7.49,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.88,
-        "voltage_kv": 138,
-        "distance_km": 8.91
+        "voltage_kv": 69,
+        "distance_km": 7.49
       }
     },
     {
@@ -670,13 +744,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 5.59,
+      "distance": 5.92,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.25,
-        "voltage_kv": 138,
-        "distance_km": 5.59
+        "voltage_kv": 69,
+        "distance_km": 5.92
       }
     },
     {
@@ -686,13 +760,13 @@
       "type": "POWER_LINE",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 1.6,
+      "distance": 2.11,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.15,
-        "voltage_kv": 138,
-        "distance_km": 1.6
+        "voltage_kv": 69,
+        "distance_km": 2.11
       }
     },
     {
@@ -702,13 +776,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 7.49,
+      "distance": 9.18,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.95,
-        "voltage_kv": 138,
-        "distance_km": 7.49
+        "voltage_kv": 69,
+        "distance_km": 9.18
       }
     },
     {
@@ -718,13 +792,13 @@
       "type": "POWER_LINE",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 7.98,
+      "distance": 7.1,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.68,
-        "voltage_kv": 138,
-        "distance_km": 7.98
+        "voltage_kv": 69,
+        "distance_km": 7.1
       }
     },
     {
@@ -734,13 +808,13 @@
       "type": "POWER_LINE",
       "capacity": 12,
       "latency": 0.0,
-      "distance": 2.95,
+      "distance": 7.44,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.3,
-        "voltage_kv": 138,
-        "distance_km": 2.95
+        "voltage_kv": 69,
+        "distance_km": 7.44
       }
     },
     {
@@ -750,13 +824,13 @@
       "type": "POWER_LINE",
       "capacity": 40,
       "latency": 0.0,
-      "distance": 10.52,
+      "distance": 3.55,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.8,
-        "voltage_kv": 138,
-        "distance_km": 10.52
+        "voltage_kv": 69,
+        "distance_km": 3.55
       }
     },
     {
@@ -766,13 +840,13 @@
       "type": "POWER_LINE",
       "capacity": 40,
       "latency": 0.0,
-      "distance": 5.62,
+      "distance": 3.66,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.7,
-        "voltage_kv": 138,
-        "distance_km": 5.62
+        "voltage_kv": 69,
+        "distance_km": 3.66
       }
     },
     {
@@ -782,13 +856,13 @@
       "type": "POWER_LINE",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 3.4,
+      "distance": 1.98,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.22,
-        "voltage_kv": 138,
-        "distance_km": 3.4
+        "voltage_kv": 69,
+        "distance_km": 1.98
       }
     },
     {
@@ -798,13 +872,13 @@
       "type": "POWER_LINE",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 7.08,
+      "distance": 6.2,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.72,
-        "voltage_kv": 138,
-        "distance_km": 7.08
+        "voltage_kv": 69,
+        "distance_km": 6.2
       }
     },
     {
@@ -814,13 +888,13 @@
       "type": "POWER_LINE",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 5.78,
+      "distance": 1.83,
       "blocked": false,
       "active": true,
       "metadata": {
         "exposure": 0.62,
-        "voltage_kv": 138,
-        "distance_km": 5.78
+        "voltage_kv": 69,
+        "distance_km": 1.83
       }
     },
     {
@@ -830,13 +904,13 @@
       "type": "MESH_LINK",
       "capacity": 900,
       "latency": 18,
-      "distance": 5.53,
+      "distance": 8.01,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 900,
         "band": "LTE",
-        "distance_km": 5.53
+        "distance_km": 8.01
       }
     },
     {
@@ -846,13 +920,13 @@
       "type": "MESH_LINK",
       "capacity": 600,
       "latency": 24,
-      "distance": 3.54,
+      "distance": 10.19,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 600,
         "band": "LTE",
-        "distance_km": 3.54
+        "distance_km": 10.19
       }
     },
     {
@@ -862,13 +936,13 @@
       "type": "MESH_LINK",
       "capacity": 500,
       "latency": 21,
-      "distance": 6.0,
+      "distance": 7.94,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 500,
         "band": "LTE",
-        "distance_km": 6.0
+        "distance_km": 7.94
       }
     },
     {
@@ -878,13 +952,13 @@
       "type": "MESH_LINK",
       "capacity": 800,
       "latency": 26,
-      "distance": 11.05,
+      "distance": 0.57,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 800,
         "band": "LTE",
-        "distance_km": 11.05
+        "distance_km": 0.57
       }
     },
     {
@@ -894,13 +968,13 @@
       "type": "MESH_LINK",
       "capacity": 400,
       "latency": 28,
-      "distance": 1.82,
+      "distance": 3.75,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 400,
         "band": "LTE",
-        "distance_km": 1.82
+        "distance_km": 3.75
       }
     },
     {
@@ -910,13 +984,13 @@
       "type": "MESH_LINK",
       "capacity": 700,
       "latency": 21,
-      "distance": 8.16,
+      "distance": 0.81,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 700,
         "band": "LTE",
-        "distance_km": 8.16
+        "distance_km": 0.81
       }
     },
     {
@@ -926,13 +1000,13 @@
       "type": "MESH_LINK",
       "capacity": 400,
       "latency": 23,
-      "distance": 0.74,
+      "distance": 3.66,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 400,
         "band": "LTE",
-        "distance_km": 0.74
+        "distance_km": 3.66
       }
     },
     {
@@ -942,13 +1016,13 @@
       "type": "MESH_LINK",
       "capacity": 300,
       "latency": 55,
-      "distance": 15.62,
+      "distance": 10.88,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 300,
         "band": "LTE",
-        "distance_km": 15.62
+        "distance_km": 10.88
       }
     },
     {
@@ -958,13 +1032,13 @@
       "type": "MESH_LINK",
       "capacity": 200,
       "latency": 58,
-      "distance": 3.15,
+      "distance": 11.42,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 200,
         "band": "MESH",
-        "distance_km": 3.15
+        "distance_km": 11.42
       }
     },
     {
@@ -974,13 +1048,13 @@
       "type": "MESH_LINK",
       "capacity": 600,
       "latency": 30,
-      "distance": 4.17,
+      "distance": 3.14,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 600,
         "band": "LTE",
-        "distance_km": 4.17
+        "distance_km": 3.14
       }
     },
     {
@@ -990,13 +1064,13 @@
       "type": "MESH_LINK",
       "capacity": 350,
       "latency": 32,
-      "distance": 2.82,
+      "distance": 5.13,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 350,
         "band": "LTE",
-        "distance_km": 2.82
+        "distance_km": 5.13
       }
     },
     {
@@ -1006,13 +1080,13 @@
       "type": "MESH_LINK",
       "capacity": 450,
       "latency": 34,
-      "distance": 2.16,
+      "distance": 9.34,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 450,
         "band": "LTE",
-        "distance_km": 2.16
+        "distance_km": 9.34
       }
     },
     {
@@ -1022,13 +1096,13 @@
       "type": "MESH_LINK",
       "capacity": 300,
       "latency": 40,
-      "distance": 7.29,
+      "distance": 14.57,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 300,
         "band": "LTE",
-        "distance_km": 7.29
+        "distance_km": 14.57
       }
     },
     {
@@ -1038,13 +1112,13 @@
       "type": "MESH_LINK",
       "capacity": 96,
       "latency": 90,
-      "distance": 20.31,
+      "distance": 2.44,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 96,
         "band": "MESH",
-        "distance_km": 20.31
+        "distance_km": 2.44
       }
     },
     {
@@ -1054,13 +1128,13 @@
       "type": "MESH_LINK",
       "capacity": 64,
       "latency": 95,
-      "distance": 4.35,
+      "distance": 4.83,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 64,
         "band": "MESH",
-        "distance_km": 4.35
+        "distance_km": 4.83
       }
     },
     {
@@ -1070,13 +1144,13 @@
       "type": "MESH_LINK",
       "capacity": 64,
       "latency": 88,
-      "distance": 1.45,
+      "distance": 4.97,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 64,
         "band": "MESH",
-        "distance_km": 1.45
+        "distance_km": 4.97
       }
     },
     {
@@ -1086,13 +1160,13 @@
       "type": "MESH_LINK",
       "capacity": 128,
       "latency": 78,
-      "distance": 2.14,
+      "distance": 6.76,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 128,
         "band": "MESH",
-        "distance_km": 2.14
+        "distance_km": 6.76
       }
     },
     {
@@ -1102,13 +1176,13 @@
       "type": "MESH_LINK",
       "capacity": 128,
       "latency": 72,
-      "distance": 3.55,
+      "distance": 8.29,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 128,
         "band": "MESH",
-        "distance_km": 3.55
+        "distance_km": 8.29
       }
     },
     {
@@ -1118,13 +1192,13 @@
       "type": "MESH_LINK",
       "capacity": 128,
       "latency": 65,
-      "distance": 12.8,
+      "distance": 4.99,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 128,
         "band": "MESH",
-        "distance_km": 12.8
+        "distance_km": 4.99
       }
     },
     {
@@ -1134,13 +1208,13 @@
       "type": "MESH_LINK",
       "capacity": 400,
       "latency": 58,
-      "distance": 7.74,
+      "distance": 6.18,
       "blocked": false,
       "active": true,
       "metadata": {
         "bandwidth_kbps": 400,
         "band": "LTE",
-        "distance_km": 7.74
+        "distance_km": 6.18
       }
     },
     {
@@ -1150,14 +1224,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 4.27,
+      "distance": 3.86,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Marina Blvd",
+        "label": "NJ-27 / Hermann Road to US-130",
         "speed_kph": 60.0,
         "flood_risk": 0.3,
-        "distance_km": 4.27
+        "distance_km": 3.86,
+        "controlled_by": "intersection-01"
       }
     },
     {
@@ -1167,14 +1242,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 5.65,
+      "distance": 0.77,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Cedar Avenue",
+        "label": "Jersey Avenue",
         "speed_kph": 60.0,
         "flood_risk": 0.22,
-        "distance_km": 5.65
+        "distance_km": 0.77,
+        "controlled_by": "intersection-04"
       }
     },
     {
@@ -1184,14 +1260,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 70,
       "latency": 0.0,
-      "distance": 12.15,
+      "distance": 0.94,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Southpoint Parkway",
+        "label": "14th Street",
         "speed_kph": 70.0,
-        "flood_risk": 0.4,
-        "distance_km": 12.15
+        "flood_risk": 0.5,
+        "distance_km": 0.94,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1201,14 +1278,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 55,
       "latency": 0.0,
-      "distance": 4.52,
+      "distance": 5.7,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Harbor Loop West",
+        "label": "US-130 Bypass (Cozzens Lane)",
         "speed_kph": 55.0,
         "flood_risk": 0.74,
-        "distance_km": 4.52
+        "distance_km": 5.7,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1218,14 +1296,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 60,
       "latency": 0.0,
-      "distance": 7.16,
+      "distance": 2.24,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Gulf Gate Road",
+        "label": "Cranbury Cross Road to US-130",
         "speed_kph": 60.0,
         "flood_risk": 0.68,
-        "distance_km": 7.16
+        "distance_km": 2.24,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1235,14 +1314,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 65,
       "latency": 0.0,
-      "distance": 7.51,
+      "distance": 0.35,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Bayfront Bypass",
+        "label": "Hermann Road",
         "speed_kph": 65.0,
         "flood_risk": 0.55,
-        "distance_km": 7.51
+        "distance_km": 0.35,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1252,14 +1332,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 55,
       "latency": 0.0,
-      "distance": 9.55,
+      "distance": 3.79,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Gulf Gate Cross",
+        "label": "US-130 (Quarry Lane to Victory Avenue)",
         "speed_kph": 55.0,
         "flood_risk": 0.68,
-        "distance_km": 9.55
+        "distance_km": 3.79,
+        "controlled_by": "intersection-06"
       }
     },
     {
@@ -1269,15 +1350,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 50,
       "latency": 0.0,
-      "distance": 4.42,
+      "distance": 2.48,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Bay Bridge",
+        "label": "US-130 Segment (Adams to Black Horse)",
         "speed_kph": 50.0,
         "flood_risk": 0.85,
-        "controlled_by": "intersection-03",
-        "distance_km": 4.42
+        "controlled_by": "intersection-02",
+        "distance_km": 2.48
       }
     },
     {
@@ -1287,14 +1368,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 1.94,
+      "distance": 2.89,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "St. Angela Access",
+        "label": "Somerset Street",
         "speed_kph": 30.0,
         "flood_risk": 0.35,
-        "distance_km": 1.94
+        "distance_km": 2.89,
+        "controlled_by": "intersection-04"
       }
     },
     {
@@ -1304,14 +1386,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 40,
       "latency": 0.0,
-      "distance": 1.36,
+      "distance": 6.01,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Bay View Drive",
+        "label": "Easton Avenue",
         "speed_kph": 40.0,
         "flood_risk": 0.72,
-        "distance_km": 1.36
+        "distance_km": 6.01,
+        "controlled_by": "intersection-06"
       }
     },
     {
@@ -1321,14 +1404,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 35,
       "latency": 0.0,
-      "distance": 1.41,
+      "distance": 0.85,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Central Avenue",
+        "label": "Cranbury Cross Road",
         "speed_kph": 35.0,
         "flood_risk": 0.38,
-        "distance_km": 1.41
+        "distance_km": 0.85,
+        "controlled_by": "intersection-01"
       }
     },
     {
@@ -1338,14 +1422,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 25,
       "latency": 0.0,
-      "distance": 1.3,
+      "distance": 1.73,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Marina Station Way",
+        "label": "Station Avenue (Fire Co. 2 Access)",
         "speed_kph": 25.0,
         "flood_risk": 0.7,
-        "distance_km": 1.3
+        "distance_km": 1.73,
+        "controlled_by": "intersection-02"
       }
     },
     {
@@ -1355,14 +1440,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 35,
       "latency": 0.0,
-      "distance": 2.55,
+      "distance": 3.8,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Gulf Gate Station Road",
+        "label": "US-130 / Cozzens Lane (Fire Co. 3 Access)",
         "speed_kph": 35.0,
         "flood_risk": 0.8,
-        "distance_km": 2.55
+        "distance_km": 3.8,
+        "controlled_by": "intersection-06"
       }
     },
     {
@@ -1372,14 +1458,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 40,
       "latency": 0.0,
-      "distance": 1.85,
+      "distance": 1.24,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "EOC Access Road",
+        "label": "Hermann Road (Municipal Complex Access)",
         "speed_kph": 40.0,
         "flood_risk": 0.15,
-        "distance_km": 1.85
+        "distance_km": 1.24,
+        "controlled_by": "intersection-04"
       }
     },
     {
@@ -1389,14 +1476,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 0.37,
+      "distance": 8.98,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Harbor Clinic Road",
+        "label": "Somerset Street (Children's Hospital Access)",
         "speed_kph": 30.0,
         "flood_risk": 0.76,
-        "distance_km": 0.37
+        "distance_km": 8.98,
+        "controlled_by": "intersection-05"
       }
     },
     {
@@ -1406,14 +1494,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 35,
       "latency": 0.0,
-      "distance": 3.14,
+      "distance": 8.8,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Surgical Center Way",
+        "label": "Hoes Lane West (Rutgers Health Access)",
         "speed_kph": 35.0,
         "flood_risk": 0.9,
-        "distance_km": 3.14
+        "distance_km": 8.8,
+        "controlled_by": "intersection-06"
       }
     },
     {
@@ -1423,14 +1512,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 45,
       "latency": 0.0,
-      "distance": 5.19,
+      "distance": 0.64,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Old Town Road",
+        "label": "Ridgewood Avenue",
         "speed_kph": 45.0,
         "flood_risk": 0.5,
-        "distance_km": 5.19
+        "distance_km": 0.64,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1440,14 +1530,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 25,
       "latency": 0.0,
-      "distance": 3.69,
+      "distance": 3.95,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Station 5 Way",
+        "label": "Dunhams Corner Road (Brookview Access)",
         "speed_kph": 25.0,
         "flood_risk": 0.78,
-        "distance_km": 3.69
+        "distance_km": 3.95,
+        "controlled_by": "intersection-05"
       }
     },
     {
@@ -1457,14 +1548,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 30,
       "latency": 0.0,
-      "distance": 1.02,
+      "distance": 2.55,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Cedar Station Way",
+        "label": "George Street (Raritan Engine Co. 4)",
         "speed_kph": 30.0,
         "flood_risk": 0.26,
-        "distance_km": 1.02
+        "distance_km": 2.55,
+        "controlled_by": "intersection-04"
       }
     },
     {
@@ -1474,14 +1566,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 35,
       "latency": 0.0,
-      "distance": 3.37,
+      "distance": 5.25,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Southpoint Station Road",
+        "label": "Hoes Lane West (Raritan Basin Access)",
         "speed_kph": 35.0,
         "flood_risk": 0.86,
-        "distance_km": 3.37
+        "distance_km": 5.25,
+        "controlled_by": "intersection-03"
       }
     },
     {
@@ -1491,14 +1584,15 @@
       "type": "ROAD_SEGMENT",
       "capacity": 65,
       "latency": 0.0,
-      "distance": 14.53,
+      "distance": 2.31,
       "blocked": false,
       "active": true,
       "metadata": {
-        "label": "Crosstown Skyway",
+        "label": "NJ-27 / Hermann Road to US-130",
         "speed_kph": 65.0,
         "flood_risk": 0.35,
-        "distance_km": 14.53
+        "distance_km": 2.31,
+        "controlled_by": "intersection-01"
       }
     }
   ],
@@ -1510,63 +1604,63 @@
       "targetId": "",
       "severity": "CATASTROPHIC",
       "intensity": 0.35,
-      "description": "Landfall event. Storm intensity ramps every tick; wind exposure and surge flooding propagate."
+      "description": "A hurricane passes over. High wind, fallen trees and heavy rain flood the low spots. This is the Hurricane Ida (2021) pattern."
     },
     {
       "id": "PRESET-SUB01",
-      "label": "Disable Substation 01",
+      "label": "Blackout: PSE&G Brunswick Substation",
       "kind": "NODE_FAILURE",
       "targetId": "substation-01",
       "severity": "CRITICAL",
-      "description": "Bayfront Substation offline. Cascades to Tower-04, Southpoint Junction, St. Angela Regional and severs the Bay Bridge."
+      "description": "The Brunswick substation fails. Power cuts to two cell towers, RWJ University Hospital and part of US-130."
     },
     {
       "id": "PRESET-SUB01-02",
-      "label": "Blackout: Substations 01 + 02",
+      "label": "Blackout: Brunswick + North Brunswick Substations",
       "kind": "NODE_FAILURE",
       "targetId": "substation-01,substation-02",
       "severity": "CATASTROPHIC",
-      "description": "Grid partition. Two substations lost simultaneously; mesh and road control collapse across the bay."
+      "description": "Both township substations fail at once. Half the township and two of the four hospitals lose power."
     },
     {
       "id": "PRESET-FLOOD-BRIDGE",
-      "label": "Flood Main Highway (Bay Bridge)",
+      "label": "Flood Route 27 / Hermann Road",
       "kind": "ROAD_BLOCK",
-      "targetId": "road-17",
+      "targetId": "road-21",
       "severity": "HIGH",
-      "description": "Storm surge severs the only short crossing of the bay. EMS dispatch must detour around the east shore."
+      "description": "Flood water blocks the Route 27 and Hermann Road link into US-130. The main road in is cut."
     },
     {
       "id": "PRESET-FLOOD-ZONE",
-      "label": "Flood All Coastal Segments",
+      "label": "Flood All High-Risk Roads",
       "kind": "FLOOD_ZONE",
       "targetId": "",
       "severity": "HIGH",
-      "description": "Every road segment with flood risk above 0.6 becomes impassable at once."
+      "description": "Every road at high flood risk closes at once. The south and east edges get cut off."
     },
     {
       "id": "PRESET-TOWER04",
-      "label": "Knock Out Tower 04",
+      "label": "Knock Out the Kendall Park Tower",
       "kind": "NODE_FAILURE",
       "targetId": "tower-04",
       "severity": "MEDIUM",
-      "description": "South Point Tower destroyed. Forces mesh fallback for Station 9 and cuts latency-sensitive traffic."
+      "description": "The Kendall Park tower is destroyed. The west side loses mesh coverage."
     },
     {
       "id": "PRESET-INT03",
-      "label": "Kill Traffic Control at Southpoint",
+      "label": "Lose Traffic Control at Hermann Rd & Cranbury Cross",
       "kind": "NODE_FAILURE",
       "targetId": "intersection-03",
       "severity": "MEDIUM",
-      "description": "Intersection control lost. Lowers arterial throughput and, inside the surge zone, blocks the Bay Bridge."
+      "description": "The traffic lights at that junction fail. The nearby US-130 stretch is closed."
     },
     {
       "id": "PRESET-SUB04",
-      "label": "Disable Substation 04",
+      "label": "Blackout: PSE&G Bennetts Lane Substation",
       "kind": "NODE_FAILURE",
       "targetId": "substation-04",
       "severity": "CRITICAL",
-      "description": "Southpoint Substation offline. Isolates Bay View Medical Center and the Gulf Gate response area."
+      "description": "The Bennetts Lane substation fails. Power cuts to the north-west area and the Rutgers Health corridor."
     }
   ]
 }

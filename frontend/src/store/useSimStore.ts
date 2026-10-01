@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type {
+  CityView,
   InboundAction,
+  TabKey,
   MetricSample,
   Preset,
   ScenarioSummary,
@@ -10,6 +12,43 @@ import type {
 
 const HISTORY_LIMIT = 180
 
+const arr = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : [])
+const rec = <T,>(v: Record<string, T> | null | undefined): Record<string, T> =>
+  v && typeof v === 'object' ? v : {}
+
+function normalizeState(s: SimulationState): SimulationState {
+  const nodes = rec(s.nodes)
+  for (const id of Object.keys(nodes)) {
+    const n = nodes[id]
+    if (!n) continue
+    nodes[id] = { ...n, dependencies: arr(n.dependencies), metadata: rec(n.metadata) }
+  }
+  for (const id of Object.keys(rec(s.connections))) {
+    const c = s.connections[id]
+    if (c) s.connections[id] = { ...c, metadata: rec(c.metadata) }
+  }
+  const d = s.diagnostics
+  return {
+    ...s,
+    nodes,
+    connections: rec(s.connections),
+    isolatedFacilities: arr(s.isolatedFacilities),
+    activeAlerts: arr(s.activeAlerts),
+    activeEmsRoutes: rec(s.activeEmsRoutes),
+    diagnostics: d
+      ? {
+          ...d,
+          events: arr(d.events),
+          commsClusters: arr(d.commsClusters).map(arr),
+          emsRoutes: arr(d.emsRoutes).map((r) => ({ ...r, nodes: arr(r.nodes) })),
+          meshBackoff: arr(d.meshBackoff),
+          dependencyEdges: arr(d.dependencyEdges),
+          blockedEdges: arr(d.blockedEdges),
+        }
+      : d,
+  }
+}
+
 interface SimStore {
   state: SimulationState | null
   runState: RunState
@@ -18,7 +57,9 @@ interface SimStore {
   presets: Preset[]
   scenarios: ScenarioSummary[]
   activeScenario: string
-  tab: 'map' | 'graph'
+  tab: TabKey
+  view: CityView
+  tourOpen: boolean
   lastError: string | null
   selectedNodeId: string | null
   pulseIds: string[]
@@ -28,7 +69,9 @@ interface SimStore {
   setConnected: (c: boolean) => void
   setPresets: (p: Preset[]) => void
   setScenarios: (s: ScenarioSummary[], active: string) => void
-  setTab: (t: 'map' | 'graph') => void
+  setTab: (t: TabKey) => void
+  setView: (v: Partial<CityView>) => void
+  setTourOpen: (b: boolean) => void
   setError: (e: string | null) => void
   selectNode: (id: string | null) => void
   setPulse: (ids: string[]) => void
@@ -37,6 +80,11 @@ interface SimStore {
 
 let lastRevision = -1
 let lastEventId = 0
+
+function appendSample(history: MetricSample[], sample: MetricSample): MetricSample[] {
+  const next = [...history, sample]
+  return next.length > HISTORY_LIMIT ? next.slice(next.length - HISTORY_LIMIT) : next
+}
 
 function sampleFrom(s: SimulationState): MetricSample {
   return {
@@ -73,21 +121,21 @@ export const useSimStore = create<SimStore>((set, get) => ({
   scenarios: [],
   activeScenario: '',
   tab: 'map',
+  view: { center: null, zoom: null, label: null, source: null },
+  tourOpen: false,
   lastError: null,
   selectedNodeId: null,
   pulseIds: [],
 
-  applyState: (s) => {
+  applyState: (raw) => {
+    const s = normalizeState(raw)
     const rev = s.diagnostics?.revision ?? 0
-    if (rev === lastRevision) return
+    const isNew = rev !== lastRevision
     lastRevision = rev
-    const sample = sampleFrom(s)
-    const history = [...get().history, sample]
-    if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT)
-    const pulse = pulseTargets(s)
+    const pulse = isNew ? pulseTargets(s) : []
     set({
       state: s,
-      history,
+      history: isNew ? appendSample(get().history, sampleFrom(s)) : get().history,
       runState: s.running ? 'RUNNING' : get().connected ? 'PAUSED' : get().runState,
       ...(pulse.length ? { pulseIds: pulse } : {}),
     })
@@ -104,6 +152,8 @@ export const useSimStore = create<SimStore>((set, get) => ({
   setPresets: (presets) => set({ presets }),
   setScenarios: (scenarios, active) => set({ scenarios, activeScenario: active }),
   setTab: (tab) => set({ tab }),
+  setView: (v) => set({ view: { ...get().view, ...v } }),
+  setTourOpen: (tourOpen) => set({ tourOpen }),
   setError: (lastError) => set({ lastError }),
   selectNode: (selectedNodeId) => set({ selectedNodeId }),
   setPulse: (pulseIds) => set({ pulseIds }),

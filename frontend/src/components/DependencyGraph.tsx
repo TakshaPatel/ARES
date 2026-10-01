@@ -6,95 +6,130 @@ import {
   MiniMap,
   Position,
   ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
   type Edge,
   type Node,
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useSimStore } from '../store/useSimStore'
+import { C, NODE_COLOR, NODE_EMOJI } from '../lib/theme'
 import type { InfrastructureNode, NodeType } from '../types/simulation'
-
-const TYPE_COLOR: Record<NodeType, string> = {
-  POWER_SUBSTATION: '#fbbf24',
-  CELL_TOWER: '#22d3ee',
-  RADIO_MESH: '#818cf8',
-  ROAD_INTERSECTION: '#94a3b8',
-  HOSPITAL: '#34d399',
-  FIRE_STATION: '#fb923c',
-  EMERGENCY_OPS_CENTER: '#f472b6',
-}
-
-const TYPE_GLYPH: Record<NodeType, string> = {
-  POWER_SUBSTATION: '⚡',
-  CELL_TOWER: '📡',
-  RADIO_MESH: '📶',
-  ROAD_INTERSECTION: '🚦',
-  HOSPITAL: '🏥',
-  FIRE_STATION: '🚒',
-  EMERGENCY_OPS_CENTER: '🏢',
-}
 
 type ArenaNode = Node<{ label: string; type: NodeType; down: boolean; depth: number; health: number; selected: boolean }>
 
 function ArenaNodeView({ data, selected }: NodeProps<ArenaNode>) {
-  const color = data.down ? '#ef4444' : TYPE_COLOR[data.type]
+  const color = data.down ? C.danger : NODE_COLOR[data.type]
   return (
     <div
-      className="min-w-[118px] rounded-md border px-2 py-1.5 text-center transition"
+      className="rounded border px-2 py-1.5 text-center transition"
       style={{
-        borderColor: selected ? '#22d3ee' : color,
-        background: data.down ? 'rgba(127,29,29,0.35)' : 'rgba(13,19,27,0.94)',
+        width: NODE_W,
+        borderColor: selected ? '#ffffff' : color,
+        background: data.down ? 'rgba(40,16,16,0.9)' : 'rgba(22,23,26,0.95)',
         boxShadow: data.down ? `0 0 12px ${color}55` : selected ? `0 0 0 1px ${color}66` : 'none',
       }}
     >
-      <Handle type="target" position={Position.Left} className="!h-1.5 !w-1.5 !border-0 !bg-slate-600" />
-      <div className="text-sm leading-none">{TYPE_GLYPH[data.type]}</div>
-      <div className="mt-0.5 truncate font-mono text-[9px] font-semibold text-slate-200">{data.label}</div>
-      <div className="mt-0.5 h-0.5 w-full overflow-hidden rounded bg-slate-800">
+      <Handle type="target" position={Position.Left} className="!h-1.5 !w-1.5 !border-0 !bg-neutral-600" />
+      <div className="text-sm leading-none">{NODE_EMOJI[data.type]}</div>
+      <div className="mt-0.5 truncate text-xs font-medium text-neutral-100">{data.label}</div>
+      <div className="mt-0.5 h-0.5 w-full overflow-hidden rounded bg-neutral-800">
         <div
           className="h-full transition-all"
           style={{ width: `${Math.max(0, Math.min(100, data.health))}%`, background: color }}
         />
       </div>
       {data.depth > 0 && (
-        <div className="absolute -right-1 -top-1 rounded-full bg-orange-500 px-1 font-mono text-[8px] text-black">
+        <div className="absolute -right-1 -top-1 rounded-full bg-orange-500 px-1 font-mono text-xs leading-tight text-black">
           {data.depth}
         </div>
       )}
-      <Handle type="source" position={Position.Right} className="!h-1.5 !w-1.5 !border-0 !bg-slate-600" />
+      <Handle type="source" position={Position.Right} className="!h-1.5 !w-1.5 !border-0 !bg-neutral-600" />
     </div>
   )
 }
 
 const nodeTypes = { arena: ArenaNodeView }
 
+const NODE_W = 150
+const GAP_X = 96
+const NODE_H = 74
+const GAP_Y = 26
+
+const TYPE_RANK: Record<NodeType, number> = {
+  POWER_SUBSTATION: 0,
+  CELL_TOWER: 1,
+  RADIO_MESH: 2,
+  ROAD_INTERSECTION: 3,
+  FIRE_STATION: 4,
+  HOSPITAL: 4,
+  EMERGENCY_OPS_CENTER: 5,
+}
+
 function layout(nodes: InfrastructureNode[]): Map<string, { x: number; y: number }> {
-  const byType: NodeType[] = [
-    'POWER_SUBSTATION',
-    'CELL_TOWER',
-    'RADIO_MESH',
-    'ROAD_INTERSECTION',
-    'FIRE_STATION',
-    'HOSPITAL',
-    'EMERGENCY_OPS_CENTER',
-  ]
   const pos = new Map<string, { x: number; y: number }>()
-  byType.forEach((t, ti) => {
-    const members = nodes.filter((n) => n.type === t).sort((a, b) => a.id.localeCompare(b.id))
-    const perCol = Math.max(1, Math.ceil(members.length / 2))
-    members.forEach((n, i) => {
-      const col = Math.floor(i / perCol)
-      const row = i % perCol
+  if (nodes.length === 0) return pos
+
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const depth = new Map<string, number>()
+  const visiting = new Set<string>()
+
+  const resolve = (id: string): number => {
+    const cached = depth.get(id)
+    if (cached !== undefined) return cached
+    if (visiting.has(id)) return 0
+    visiting.add(id)
+    let d = 0
+    for (const dep of byId.get(id)?.dependencies ?? []) {
+      if (byId.has(dep)) {
+        const child = resolve(dep)
+        if (child + 1 > d) d = child + 1
+      }
+    }
+    visiting.delete(id)
+    depth.set(id, d)
+    return d
+  }
+
+  for (const n of nodes) resolve(n.id)
+
+  const columns = new Map<number, InfrastructureNode[]>()
+  for (const n of nodes) {
+    const d = depth.get(n.id) ?? 0
+    const bucket = columns.get(d)
+    if (bucket) bucket.push(n)
+    else columns.set(d, [n])
+  }
+
+  const tallest = Math.max(...[...columns.values()].map((c) => c.length))
+  const fullHeight = (tallest - 1) * (NODE_H + GAP_Y)
+
+  for (const [d, bucket] of columns) {
+    bucket.sort(
+      (a, b) => TYPE_RANK[a.type] - TYPE_RANK[b.type] || a.id.localeCompare(b.id),
+    )
+    const height = (bucket.length - 1) * (NODE_H + GAP_Y)
+    const offset = (fullHeight - height) / 2
+    bucket.forEach((n, i) => {
       pos.set(n.id, {
-        x: col * 250 + ti * 40,
-        y: row * 96 + ti * 22,
+        x: d * (NODE_W + GAP_X),
+        y: offset + i * (NODE_H + GAP_Y) - fullHeight / 2,
       })
     })
-  })
+  }
   return pos
 }
 
-export default function DependencyGraph() {
+export default function DependencyGraph({ active = true }: { active?: boolean }) {
+  return (
+    <ReactFlowProvider>
+      <GraphInner active={active} />
+    </ReactFlowProvider>
+  )
+}
+
+function GraphInner({ active }: { active: boolean }) {
   const state = useSimStore((s) => s.state)
   const pulseIds = useSimStore((s) => s.pulseIds)
   const selectNode = useSimStore((s) => s.selectNode)
@@ -129,11 +164,11 @@ export default function DependencyGraph() {
         const depTargetDown = state.nodes[e.target] && !state.nodes[e.target].operational
         const color = e.kind === 'DEPENDENCY'
           ? depTargetDown
-            ? '#ef4444'
-            : '#22d3ee'
+            ? C.danger
+            : C.comms
           : state.connections[e.id.replace('conn:', '')]?.blocked
-            ? '#ef4444'
-            : '#475569'
+            ? C.danger
+            : C.road
         return {
           id: e.id,
           source: e.source,
@@ -141,7 +176,7 @@ export default function DependencyGraph() {
           type: 'smoothstep',
           animated: pulsing || depTargetDown,
           style: {
-            stroke: pulsing ? '#ef4444' : color,
+            stroke: pulsing ? C.danger : color,
             strokeWidth: pulsing ? 2.6 : e.kind === 'DEPENDENCY' ? 1.3 : 0.9,
             strokeDasharray: e.kind === 'DEPENDENCY' ? undefined : '4 3',
             opacity: pulsing ? 1 : 0.55,
@@ -164,19 +199,39 @@ export default function DependencyGraph() {
     }
   }, [selectedNodeId, rfNodes])
 
+  const { fitView } = useReactFlow()
+
+  useEffect(() => {
+    if (!active) return
+    let raf = 0
+    let tries = 0
+    const attempt = () => {
+      const el = document.querySelector('.react-flow')
+      if (!el || el.clientWidth < 40 || el.clientHeight < 40) {
+        if (tries++ < 30) raf = requestAnimationFrame(attempt)
+        return
+      }
+      void fitView({ padding: 0.18, duration: 260 })
+    }
+    raf = requestAnimationFrame(attempt)
+    return () => cancelAnimationFrame(raf)
+  }, [active, fitView])
+
   const stats = useMemo(() => {
     if (!state) return { total: 0, down: 0, edges: 0, depth: 0 }
     const list = Object.values(state.nodes)
     return {
       total: list.length,
       down: list.filter((n) => !n.operational).length,
-      edges: state.diagnostics?.dependencyEdges.length ?? 0,
+      edges: (state.diagnostics?.dependencyEdges ?? []).filter(
+        (e) => e.kind === 'DEPENDENCY' || e.kind === 'ROAD_SEGMENT',
+      ).length,
       depth: Math.max(0, ...list.map((n) => n.cascadeDepth)),
     }
   }, [state])
 
   if (!state) {
-    return <div className="flex h-full items-center justify-center font-mono text-[11px] text-slate-600">Loading graph…</div>
+    return <div className="flex h-full items-center justify-center text-sm text-neutral-500">Loading graph…</div>
   }
 
   return (
@@ -186,8 +241,7 @@ export default function DependencyGraph() {
         edges={rfEdges}
         nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
-        fitView
-        fitViewOptions={{ padding: 0.18 }}
+        fitView={false}
         minZoom={0.15}
         maxZoom={2.2}
         proOptions={{ hideAttribution: true }}
@@ -195,39 +249,40 @@ export default function DependencyGraph() {
         nodesConnectable={false}
         elementsSelectable
       >
-        <Background color="#1e2936" gap={22} size={1} />
-        <Controls showInteractive={false} className="!bg-slate-900 !border-ares-border" />
+        <Background color={C.grid} gap={22} size={1} />
+        <Controls showInteractive={false} className="!bg-neutral-900 !border-neutral-700" />
         <MiniMap
           pannable
           zoomable
-          className="!bg-slate-900 !border-ares-border"
+          className="!bg-neutral-900 !border-neutral-700"
           nodeColor={(n) => {
             const d = n.data as ArenaNode['data']
-            return d.down ? '#ef4444' : TYPE_COLOR[d.type]
+            return d.down ? C.danger : NODE_COLOR[d.type]
           }}
           maskColor="rgba(2,6,23,0.75)"
         />
       </ReactFlow>
 
-      <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1 font-mono text-[9px] uppercase tracking-wider">
-        <div className="rounded-md border border-ares-border bg-ares-panel/85 px-2 py-1.5 text-slate-400 backdrop-blur">
-          {stats.total} nodes · {stats.edges} edges ·{' '}
-          <span className={stats.down ? 'text-red-400' : 'text-emerald-400'}>{stats.down} down</span> · max depth{' '}
-          {stats.depth}
+      <div className="pointer-events-none absolute left-3 top-3 flex flex-col gap-1 text-xs">
+        <div className="rounded border border-ares-border bg-neutral-900/85 px-2 py-1.5 text-neutral-400 backdrop-blur">
+          <span className="font-mono tabular-nums">{stats.total}</span> nodes ·{' '}
+          <span className="font-mono tabular-nums">{stats.edges}</span> edges ·{' '}
+          <span className={`font-mono tabular-nums ${stats.down ? 'text-red-300' : 'text-neutral-100'}`}>{stats.down} down</span> · max depth{' '}
+          <span className="font-mono tabular-nums">{stats.depth}</span>
         </div>
-        <div className="flex flex-wrap gap-2 rounded-md border border-ares-border bg-ares-panel/85 px-2 py-1.5 backdrop-blur">
-          {(Object.keys(TYPE_COLOR) as NodeType[]).map((t) => (
-            <span key={t} className="flex items-center gap-1 text-slate-400">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: TYPE_COLOR[t] }} />
-              {t.replace(/_/g, ' ').slice(0, 10)}
+        <div className="flex flex-wrap gap-2 rounded border border-ares-border bg-neutral-900/85 px-2 py-1.5 backdrop-blur">
+          {(Object.keys(NODE_COLOR) as NodeType[]).map((t) => (
+            <span key={t} className="flex items-center gap-1 text-neutral-400">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: NODE_COLOR[t] }} />
+              {t.replace(/_/g, ' ').toLowerCase()}
             </span>
           ))}
         </div>
       </div>
 
       {pulseIds.length > 0 && (
-        <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-red-500/50 bg-red-500/10 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-red-300 backdrop-blur">
-          Cascade pulse · {pulseIds.length} node{pulseIds.length === 1 ? '' : 's'}
+        <div className="pointer-events-none absolute right-3 top-3 rounded border border-red-500/50 bg-red-500/10 px-2 py-1 text-xs font-medium text-red-200 backdrop-blur">
+          Cascade pulse · <span className="font-mono tabular-nums">{pulseIds.length}</span> node{pulseIds.length === 1 ? '' : 's'}
         </div>
       )}
     </div>

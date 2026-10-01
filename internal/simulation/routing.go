@@ -23,7 +23,7 @@ type RoadPath struct {
 	Minutes    float64
 }
 
-func (p *RoadPath) Full() bool { return p != nil && len(p.Nodes) > 0 }
+func (path *RoadPath) Full() bool { return path != nil && len(path.Nodes) > 0 }
 func BuildRoadAdjacency(nodes map[string]*InfrastructureNode, conns map[string]*Connection) map[string][]RoadArc {
 	adj := make(map[string][]RoadArc, len(nodes))
 	add := func(c *Connection, from, to string) {
@@ -68,10 +68,10 @@ func BuildRoadAdjacency(nodes map[string]*InfrastructureNode, conns map[string]*
 		add(c, c.From, c.To)
 		add(c, c.To, c.From)
 	}
-	for k := range adj {
-		arcs := adj[k]
+	for nodeId := range adj {
+		arcs := adj[nodeId]
 		sort.Slice(arcs, func(i, j int) bool { return arcs[i].To < arcs[j].To })
-		adj[k] = arcs
+		adj[nodeId] = arcs
 	}
 	return adj
 }
@@ -84,17 +84,17 @@ type roadHeapItem struct {
 }
 type roadHeap []roadHeapItem
 
-func (h roadHeap) Len() int           { return len(h) }
-func (h roadHeap) Less(i, j int) bool { return h[i].f < h[j].f }
-func (h roadHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-func (h *roadHeap) Push(x interface{}) {
-	*h = append(*h, x.(roadHeapItem))
+func (heap roadHeap) Len() int           { return len(heap) }
+func (heap roadHeap) Less(i, j int) bool { return heap[i].f < heap[j].f }
+func (heap roadHeap) Swap(i, j int)      { heap[i], heap[j] = heap[j], heap[i] }
+func (heap *roadHeap) Push(x interface{}) {
+	*heap = append(*heap, x.(roadHeapItem))
 }
-func (h *roadHeap) Pop() interface{} {
-	old := *h
+func (heap *roadHeap) Pop() interface{} {
+	old := *heap
 	n := len(old)
 	it := old[n-1]
-	*h = old[:n-1]
+	*heap = old[:n-1]
 	return it
 }
 func junctionPassable(nodes map[string]*InfrastructureNode, id string) bool {
@@ -124,8 +124,8 @@ func AstarRoad(
 	}
 	maxSpeed := 1.0
 	for _, arcs := range adj {
-		for _, a := range arcs {
-			if m := a.Minutes / math.Max(a.Distance, 0.001); m > 0 {
+		for _, arc := range arcs {
+			if m := arc.Minutes / math.Max(arc.Distance, 0.001); m > 0 {
 				if s := 60 / m; s > maxSpeed {
 					maxSpeed = s
 				}
@@ -196,21 +196,21 @@ func AstarRoad(
 	}
 	return &RoadPath{Nodes: nodesPath, Segments: segments}
 }
-func finalisePath(adj map[string][]RoadArc, p *RoadPath) *RoadPath {
-	if p == nil {
+func finalisePath(adj map[string][]RoadArc, path *RoadPath) *RoadPath {
+	if path == nil {
 		return nil
 	}
-	for i := 0; i+1 < len(p.Nodes); i++ {
-		from, to := p.Nodes[i], p.Nodes[i+1]
-		for _, a := range adj[from] {
-			if a.To == to {
-				p.DistanceKM += a.Distance
-				p.Minutes += a.Minutes
+	for i := 0; i+1 < len(path.Nodes); i++ {
+		from, to := path.Nodes[i], path.Nodes[i+1]
+		for _, arc := range adj[from] {
+			if arc.To == to {
+				path.DistanceKM += arc.Distance
+				path.Minutes += arc.Minutes
 				break
 			}
 		}
 	}
-	return p
+	return path
 }
 
 type RoutingResult struct {
@@ -230,8 +230,8 @@ func ComputeEMSRoutes(
 	adj := BuildRoadAdjacency(nodes, conns)
 	res := &RoutingResult{Active: map[string][]string{}, RoadReach: roadReachability(nodes, adj)}
 	var stations, hospitals []string
-	for id, n := range nodes {
-		switch n.Type {
+	for id, node := range nodes {
+		switch node.Type {
 		case NodeFireStation:
 			stations = append(stations, id)
 		case NodeHospital:
@@ -249,49 +249,49 @@ func ComputeEMSRoutes(
 		minutes  float64
 	}
 	best := map[string]option{}
-	for _, s := range stations {
-		if !nodes[s].Operational {
+	for _, stationId := range stations {
+		if !nodes[stationId].Operational {
 			continue
 		}
-		for _, h := range hospitals {
-			if !nodes[h].Operational {
+		for _, hospitalId := range hospitals {
+			if !nodes[hospitalId].Operational {
 				continue
 			}
-			p := finalisePath(adj, AstarRoad(nodes, adj, s, h))
+			p := finalisePath(adj, AstarRoad(nodes, adj, stationId, hospitalId))
 			if p == nil {
 				continue
 			}
-			cur, seen := best[s]
+			cur, seen := best[stationId]
 			if !seen || p.Minutes < cur.minutes {
-				best[s] = option{station: s, hospital: h, minutes: p.Minutes}
+				best[stationId] = option{station: stationId, hospital: hospitalId, minutes: p.Minutes}
 			}
 		}
 	}
 	order := make([]string, 0, len(best))
-	for s := range best {
-		order = append(order, s)
+	for stationId := range best {
+		order = append(order, stationId)
 	}
 	sort.Strings(order)
 
 	primaryByHospital := map[string]EmsRoute{}
-	for _, s := range order {
-		opt := best[s]
-		p := finalisePath(adj, AstarRoad(nodes, adj, s, opt.hospital))
+	for _, stationId := range order {
+		opt := best[stationId]
+		p := finalisePath(adj, AstarRoad(nodes, adj, stationId, opt.hospital))
 		if p == nil {
 			continue
 		}
 		route := EmsRoute{
-			ID:          s + "->" + opt.hospital,
-			Origin:      s,
+			ID:          stationId + "->" + opt.hospital,
+			Origin:      stationId,
 			Destination: opt.hospital,
 			Nodes:       append([]string{}, p.Nodes...),
 			DistanceKM:  round2(p.DistanceKM),
 			ETAMinutes:  round2(p.Minutes),
 		}
 		if net != nil {
-			route.Degraded = net.MeshBackoffSet[s]
+			route.Degraded = net.MeshBackoffSet[stationId]
 		}
-		if old, had := prior[s]; had {
+		if old, had := prior[stationId]; had {
 			route.PriorDistance = route.DistanceKM
 			if !samePath(old, route.Nodes) {
 				route.Changed = true
@@ -299,25 +299,25 @@ func ComputeEMSRoutes(
 			}
 		}
 		res.Routes = append(res.Routes, route)
-		res.Active[s] = append([]string{}, route.Nodes...)
+		res.Active[stationId] = append([]string{}, route.Nodes...)
 		if cur, seen := primaryByHospital[opt.hospital]; !seen || route.ETAMinutes < cur.ETAMinutes {
 			primaryByHospital[opt.hospital] = route
 		}
 	}
-	for h, route := range primaryByHospital {
-		res.Active[h] = append([]string{}, route.Nodes...)
+	for hospitalId, route := range primaryByHospital {
+		res.Active[hospitalId] = append([]string{}, route.Nodes...)
 	}
 
 	assignedHospital := map[string]bool{}
-	for _, s := range order {
-		assignedHospital[best[s].hospital] = true
+	for _, stationId := range order {
+		assignedHospital[best[stationId].hospital] = true
 	}
-	for _, s := range stations {
-		if _, ok := best[s]; ok {
+	for _, stationId := range stations {
+		if _, ok := best[stationId]; ok {
 			continue
 		}
-		if n, alive := nodes[s]; alive && n.Operational {
-			res.Unreachable = append(res.Unreachable, s)
+		if n, alive := nodes[stationId]; alive && n.Operational {
+			res.Unreachable = append(res.Unreachable, stationId)
 		}
 	}
 	sort.Strings(res.Unreachable)
@@ -326,8 +326,8 @@ func ComputeEMSRoutes(
 func roadReachability(nodes map[string]*InfrastructureNode, adj map[string][]RoadArc) map[string]bool {
 	reach := map[string]bool{}
 	var queue []string
-	for id, n := range nodes {
-		if n.Type == NodeEOC && n.Operational {
+	for id, node := range nodes {
+		if node.Type == NodeEOC && node.Operational {
 			reach[id] = true
 			queue = append(queue, id)
 		}
@@ -336,12 +336,12 @@ func roadReachability(nodes map[string]*InfrastructureNode, adj map[string][]Roa
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
-		for _, a := range adj[cur] {
-			if a.Blocked || reach[a.To] || !junctionPassable(nodes, a.To) {
+		for _, arc := range adj[cur] {
+			if arc.Blocked || reach[arc.To] || !junctionPassable(nodes, arc.To) {
 				continue
 			}
-			reach[a.To] = true
-			queue = append(queue, a.To)
+			reach[arc.To] = true
+			queue = append(queue, arc.To)
 		}
 	}
 	return reach
@@ -357,13 +357,13 @@ func samePath(a, b []string) bool {
 	}
 	return true
 }
-func round2(v float64) float64 {
-	return math.Round(v*100) / 100
+func round2(val float64) float64 {
+	return math.Round(val*100) / 100
 }
-func DescribeRoute(r EmsRoute, cause string) string {
+func DescribeRoute(route EmsRoute, cause string) string {
 	if cause == "" {
 		cause = "obstruction"
 	}
 	return fmt.Sprintf("REROUTE %s -> %s via %d segments (%.1f km, ETA %.1f min) due to %s",
-		r.Origin, r.Destination, len(r.Nodes)-1, r.DistanceKM, r.ETAMinutes, cause)
+		route.Origin, route.Destination, len(route.Nodes)-1, route.DistanceKM, route.ETAMinutes, cause)
 }

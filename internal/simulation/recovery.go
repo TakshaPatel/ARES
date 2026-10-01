@@ -20,9 +20,9 @@ type RecoveryReport struct {
 	Stalled   []string
 }
 
-func RepairRate(n *InfrastructureNode) float64 {
+func RepairRate(node *InfrastructureNode) float64 {
 	base := 3.2
-	switch n.Type {
+	switch node.Type {
 	case NodePowerSubstation:
 		base = 2.1
 	case NodeCellTower:
@@ -32,20 +32,20 @@ func RepairRate(n *InfrastructureNode) float64 {
 	case NodeRoadIntersection:
 		base = 7.0
 	}
-	if n.MetaBool("backup_power", false) {
+	if node.MetaBool("backup_power", false) {
 		base *= 1.15
 	}
-	if n.Health < 20 {
+	if node.Health < 20 {
 		base *= 0.6
 	}
 	return base
 }
 
-func StartRepair(n *InfrastructureNode) bool {
-	if n.Operational || n.Health > 0 {
+func StartRepair(node *InfrastructureNode) bool {
+	if node.Operational || node.Health > 0 {
 		return false
 	}
-	n.Repairing = true
+	node.Repairing = true
 	return true
 }
 
@@ -133,8 +133,8 @@ func StepRecovery(
 	return rep
 }
 
-func crewFor(n *InfrastructureNode) string {
-	switch n.Type {
+func crewFor(node *InfrastructureNode) string {
+	switch node.Type {
 	case NodePowerSubstation:
 		return "LINE_CREW_ALPHA"
 	case NodeCellTower:

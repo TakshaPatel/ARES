@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+func copyStrings(in []string) []string {
+	if len(in) == 0 {
+		return []string{}
+	}
+	out := make([]string, len(in))
+	copy(out, in)
+	return out
+}
+
 type NodeType string
 
 const (
@@ -35,21 +44,21 @@ const (
 	healthDegraded = 75.0
 )
 
-func (t NodeType) IsFacility() bool {
-	switch t {
+func (nodeType NodeType) IsFacility() bool {
+	switch nodeType {
 	case NodeHospital, NodeFireStation, NodeEOC:
 		return true
 	}
 	return false
 }
-func (t NodeType) IsComms() bool {
-	return t == NodeCellTower || t == NodeRadioMesh
+func (nodeType NodeType) IsComms() bool {
+	return nodeType == NodeCellTower || nodeType == NodeRadioMesh
 }
-func (t NodeType) IsPower() bool {
-	return t == NodePowerSubstation
+func (nodeType NodeType) IsPower() bool {
+	return nodeType == NodePowerSubstation
 }
-func (t NodeType) IsRoadControl() bool {
-	return t == NodeRoadIntersection
+func (nodeType NodeType) IsRoadControl() bool {
+	return nodeType == NodeRoadIntersection
 }
 
 type InfrastructureNode struct {
@@ -70,11 +79,11 @@ type InfrastructureNode struct {
 	Repairing    bool                   `json:"repairing"`
 }
 
-func (n *InfrastructureNode) Meta(key string, fallback float64) float64 {
-	if n.Metadata == nil {
+func (node *InfrastructureNode) Meta(key string, fallback float64) float64 {
+	if node.Metadata == nil {
 		return fallback
 	}
-	switch v := n.Metadata[key].(type) {
+	switch v := node.Metadata[key].(type) {
 	case float64:
 		return v
 	case int:
@@ -84,28 +93,28 @@ func (n *InfrastructureNode) Meta(key string, fallback float64) float64 {
 	}
 	return fallback
 }
-func (n *InfrastructureNode) MetaBool(key string, fallback bool) bool {
-	if n.Metadata == nil {
+func (node *InfrastructureNode) MetaBool(key string, fallback bool) bool {
+	if node.Metadata == nil {
 		return fallback
 	}
-	if v, ok := n.Metadata[key].(bool); ok {
+	if v, ok := node.Metadata[key].(bool); ok {
 		return v
 	}
 	return fallback
 }
-func (n *InfrastructureNode) StatusFor(isolated bool) InfrastructureStatus {
+func (node *InfrastructureNode) StatusFor(isolated bool) InfrastructureStatus {
 	switch {
-	case !n.Operational || n.Health <= healthCritical:
+	case !node.Operational || node.Health <= healthCritical:
 		return StatusFailed
-	case n.Repairing:
+	case node.Repairing:
 		return StatusRestoring
 	case isolated:
 		return StatusIsolated
-	case n.Health < healthImpaired:
+	case node.Health < healthImpaired:
 		return StatusImpaired
-	case n.Health < healthDegraded:
+	case node.Health < healthDegraded:
 		return StatusDegraded
-	case n.Operational:
+	case node.Operational:
 		return StatusOperational
 	default:
 		return StatusStandby
@@ -136,11 +145,11 @@ type Connection struct {
 	Flooded  bool                   `json:"flooded"`
 }
 
-func (c *Connection) Meta(key string, fallback float64) float64 {
-	if c.Metadata == nil {
+func (conn *Connection) Meta(key string, fallback float64) float64 {
+	if conn.Metadata == nil {
 		return fallback
 	}
-	switch v := c.Metadata[key].(type) {
+	switch v := conn.Metadata[key].(type) {
 	case float64:
 		return v
 	case int:
@@ -150,26 +159,26 @@ func (c *Connection) Meta(key string, fallback float64) float64 {
 	}
 	return fallback
 }
-func (c *Connection) Usable() bool {
-	return c.Active && !c.Blocked
+func (conn *Connection) Usable() bool {
+	return conn.Active && !conn.Blocked
 }
-func (c *Connection) Speed() float64 {
-	if c.SpeedKPH > 0 {
-		return c.SpeedKPH
+func (conn *Connection) Speed() float64 {
+	if conn.SpeedKPH > 0 {
+		return conn.SpeedKPH
 	}
-	if s := c.Meta("speed_kph", 0); s > 0 {
+	if s := conn.Meta("speed_kph", 0); s > 0 {
 		return s
 	}
 	return 50
 }
-func (c *Connection) Risk() float64 {
-	return c.Meta("flood_risk", 0.25)
+func (conn *Connection) Risk() float64 {
+	return conn.Meta("flood_risk", 0.25)
 }
-func (c *Connection) MetaBool(key string, fallback bool) bool {
-	if c.Metadata == nil {
+func (conn *Connection) MetaBool(key string, fallback bool) bool {
+	if conn.Metadata == nil {
 		return fallback
 	}
-	if v, ok := c.Metadata[key].(bool); ok {
+	if v, ok := conn.Metadata[key].(bool); ok {
 		return v
 	}
 	return fallback
@@ -256,65 +265,65 @@ type SimulationState struct {
 	Diagnostics         *Diagnostics                   `json:"diagnostics,omitempty"`
 }
 
-func (s *SimulationState) Clone() *SimulationState {
+func (state *SimulationState) Clone() *SimulationState {
 	out := &SimulationState{
-		Tick:                s.Tick,
-		Running:             s.Running,
-		PowerGridHealth:     s.PowerGridHealth,
-		CommsCoverage:       s.CommsCoverage,
-		RoadAccessibility:   s.RoadAccessibility,
-		MessageDeliveryRate: s.MessageDeliveryRate,
-		AverageLatency:      s.AverageLatency,
-		ConnectedFacilities: s.ConnectedFacilities,
-		TotalFacilities:     s.TotalFacilities,
+		Tick:                state.Tick,
+		Running:             state.Running,
+		PowerGridHealth:     state.PowerGridHealth,
+		CommsCoverage:       state.CommsCoverage,
+		RoadAccessibility:   state.RoadAccessibility,
+		MessageDeliveryRate: state.MessageDeliveryRate,
+		AverageLatency:      state.AverageLatency,
+		ConnectedFacilities: state.ConnectedFacilities,
+		TotalFacilities:     state.TotalFacilities,
 	}
-	if s.Nodes != nil {
-		out.Nodes = make(map[string]*InfrastructureNode, len(s.Nodes))
-		for id, n := range s.Nodes {
-			c := *n
-			c.Dependencies = append([]string(nil), n.Dependencies...)
-			if n.Metadata != nil {
-				c.Metadata = make(map[string]interface{}, len(n.Metadata))
-				for k, v := range n.Metadata {
-					c.Metadata[k] = v
+	if state.Nodes != nil {
+		out.Nodes = make(map[string]*InfrastructureNode, len(state.Nodes))
+		for id, node := range state.Nodes {
+			c := *node
+			c.Dependencies = copyStrings(node.Dependencies)
+			if node.Metadata != nil {
+				c.Metadata = make(map[string]interface{}, len(node.Metadata))
+				for key, value := range node.Metadata {
+					c.Metadata[key] = value
 				}
 			}
 			out.Nodes[id] = &c
 		}
 	}
-	if s.Connections != nil {
-		out.Connections = make(map[string]*Connection, len(s.Connections))
-		for id, e := range s.Connections {
-			c := *e
-			if e.Metadata != nil {
-				c.Metadata = make(map[string]interface{}, len(e.Metadata))
-				for k, v := range e.Metadata {
-					c.Metadata[k] = v
+	if state.Connections != nil {
+		out.Connections = make(map[string]*Connection, len(state.Connections))
+		for id, conn := range state.Connections {
+			c := *conn
+			if conn.Metadata != nil {
+				c.Metadata = make(map[string]interface{}, len(conn.Metadata))
+				for key, value := range conn.Metadata {
+					c.Metadata[key] = value
 				}
 			}
 			out.Connections[id] = &c
 		}
 	}
-	out.IsolatedFacilities = append([]string{}, s.IsolatedFacilities...)
-	out.ActiveAlerts = append([]string{}, s.ActiveAlerts...)
-	out.ActiveEMSRoutes = make(map[string][]string, len(s.ActiveEMSRoutes))
-	for k, v := range s.ActiveEMSRoutes {
-		out.ActiveEMSRoutes[k] = append([]string{}, v...)
+	out.IsolatedFacilities = append([]string{}, state.IsolatedFacilities...)
+	out.ActiveAlerts = append([]string{}, state.ActiveAlerts...)
+	out.ActiveEMSRoutes = make(map[string][]string, len(state.ActiveEMSRoutes))
+	for key, value := range state.ActiveEMSRoutes {
+		out.ActiveEMSRoutes[key] = append([]string{}, value...)
 	}
-	if s.Diagnostics != nil {
-		d := *s.Diagnostics
-		d.Events = append([]EventLogEntry{}, s.Diagnostics.Events...)
-		d.MeshBackoff = append([]string{}, s.Diagnostics.MeshBackoff...)
-		d.BlockedEdges = append([]string{}, s.Diagnostics.BlockedEdges...)
-		d.DependencyEdge = append([]DependencyEdge{}, s.Diagnostics.DependencyEdge...)
-		d.CommsClusters = make([][]string, 0, len(s.Diagnostics.CommsClusters))
-		for _, c := range s.Diagnostics.CommsClusters {
-			d.CommsClusters = append(d.CommsClusters, append([]string{}, c...))
+	if state.Diagnostics != nil {
+		d := *state.Diagnostics
+		d.Events = append([]EventLogEntry{}, state.Diagnostics.Events...)
+		d.MeshBackoff = append([]string{}, state.Diagnostics.MeshBackoff...)
+		d.BlockedEdges = append([]string{}, state.Diagnostics.BlockedEdges...)
+		d.DependencyEdge = append([]DependencyEdge{}, state.Diagnostics.DependencyEdge...)
+		d.CommsClusters = make([][]string, 0, len(state.Diagnostics.CommsClusters))
+		for _, cluster := range state.Diagnostics.CommsClusters {
+			d.CommsClusters = append(d.CommsClusters, append([]string{}, cluster...))
 		}
-		d.EmsRoutes = make([]EmsRoute, 0, len(s.Diagnostics.EmsRoutes))
-		for _, r := range s.Diagnostics.EmsRoutes {
-			rr := r
-			rr.Nodes = append([]string{}, r.Nodes...)
+		d.EmsRoutes = make([]EmsRoute, 0, len(state.Diagnostics.EmsRoutes))
+		for _, route := range state.Diagnostics.EmsRoutes {
+			rr := route
+			rr.Nodes = append([]string{}, route.Nodes...)
 			d.EmsRoutes = append(d.EmsRoutes, rr)
 		}
 		out.Diagnostics = &d
